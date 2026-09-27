@@ -1,0 +1,33 @@
+from smartagent.api.routes import (
+    agents,
+    auth,
+    cost,
+    evaluations,
+    experiments,
+    feedback,
+    golden_sets,
+    grants,
+    memory,
+    roles,
+    runs,
+    skills,
+    tools,
+    users,
+)
+
+__all__ = [
+    "agents",
+    "auth",
+    "cost",
+    "evaluations",
+    "experiments",
+    "feedback",
+    "golden_sets",
+    "grants",
+    "memory",
+    "roles",
+    "runs",
+    "skills",
+    "tools",
+    "users",
+]
