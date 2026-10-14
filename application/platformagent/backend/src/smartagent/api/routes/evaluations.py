@@ -19,8 +19,8 @@ from smartagent.db.session import get_db
 from smartagent.iam.permission_manager import Principal
 from smartagent.services.evaluation_service import EvaluationJob, launch
 from smartagent.util import new_id
-from src.memory.manager import MemoryManager
-from src.tools.registry import ToolRegistry
+from ouroboros.memory.manager import MemoryManager
+from ouroboros.tools.registry import ToolRegistry
 
 router = APIRouter(prefix="/evaluations", tags=["evaluation"])
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ async def create_evaluation(
             detail={"code": "RESOURCE_NOT_FOUND", "message": f"golden set {body.golden_set_id} not found"},
         )
     agent = await db.get(Agent, body.agent_id)
-    if agent is None or agent.tenant_id != principal.tenant_id:
+    if agent is None or agent.tenant_id != principal.tenant_id or agent.status != "active":
         raise HTTPException(
             status_code=404,
             detail={"code": "RESOURCE_NOT_FOUND", "message": f"agent {body.agent_id} not found"},

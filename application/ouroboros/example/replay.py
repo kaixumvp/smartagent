@@ -11,11 +11,11 @@ import asyncio
 import os
 import tempfile
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.core.resilience import RetryPolicy
-from src.llm.replay import ReplayGateway, RecordingGateway, dump_recording, load_recording
-from src.plugins.registry import PluginRegistry
-from src.tools.registry import build_default_registry
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.core.resilience import RetryPolicy
+from ouroboros.llm.replay import ReplayGateway, RecordingGateway, dump_recording, load_recording
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.registry import build_default_registry
 
 from _shared import ScriptedLLM, finish, plan, tool_call
 

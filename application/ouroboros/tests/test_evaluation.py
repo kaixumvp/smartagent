@@ -1,6 +1,6 @@
 import pytest
 
-from src.evaluation import Case, GoldenSet, HeuristicJudge, run_evaluation
+from ouroboros.evaluation import Case, GoldenSet, HeuristicJudge, run_evaluation
 
 
 @pytest.mark.asyncio
@@ -22,9 +22,9 @@ async def test_heuristic_judge_without_reference():
 @pytest.mark.asyncio
 async def test_run_evaluation_single_case():
     from conftest import MockLLMGateway, build_default_plugins
-    from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-    from src.core.resilience import RetryPolicy
-    from src.llm.base import LLMResponse, Usage
+    from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+    from ouroboros.core.resilience import RetryPolicy
+    from ouroboros.llm.base import LLMResponse, Usage
 
     llm = MockLLMGateway([
         LLMResponse(content='[{"description": "answer"}]', usage=Usage()),

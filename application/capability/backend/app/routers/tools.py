@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -6,8 +7,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..manifest import new_manifest, slugify
-from ..models import Tool
-from ..schemas import ToolCreate, ToolOut, ToolUpdate
+from ..mcp_auth import decrypt_auth_config
+from ..mcp_client import call_remote_tool, describe_mcp_error
+from ..models import Provider, Tool
+from ..schemas import ToolCreate, ToolOut, ToolTestRequest, ToolUpdate
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
@@ -61,6 +64,42 @@ def list_tools(
 @router.get("/{tool_id}", response_model=ToolOut)
 def get_tool(tool_id: uuid.UUID, db: Session = Depends(get_db)):
     return _get_tool_or_404(db, tool_id)
+
+
+@router.post("/{tool_id}/test")
+def test_tool(tool_id: uuid.UUID, payload: ToolTestRequest, db: Session = Depends(get_db)):
+    tool = _get_tool_or_404(db, tool_id)
+    if tool.source != "mcp":
+        raise HTTPException(status_code=400, detail="Only MCP-synced tools can be tested")
+    if tool.lifecycle_state == "remote_missing":
+        raise HTTPException(status_code=409, detail="Tool is missing from its MCP server")
+    if tool.provider_id is None:
+        raise HTTPException(status_code=409, detail="Tool has no MCP Provider")
+    if not tool.remote_tool_name:
+        raise HTTPException(status_code=409, detail="Tool has no remote MCP name")
+
+    provider = db.get(Provider, tool.provider_id)
+    if provider is None:
+        raise HTTPException(status_code=409, detail="MCP Provider not found")
+
+    try:
+        auth_config = decrypt_auth_config(provider.auth_config_encrypted)
+        return asyncio.run(
+            call_remote_tool(
+                provider.endpoint,
+                tool.remote_tool_name,
+                payload.arguments,
+                provider.auth_type,
+                auth_config,
+            )
+        )
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="MCP Tool 调用超时（30 秒）") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - surface remote connection/protocol errors as HTTP
+        detail = describe_mcp_error(exc)
+        raise HTTPException(status_code=502, detail=f"MCP Tool 调用失败: {detail}") from exc
 
 
 @router.put("/{tool_id}", response_model=ToolOut)

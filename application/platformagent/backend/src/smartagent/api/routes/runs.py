@@ -1,6 +1,6 @@
 """Run endpoints: create (sync or SSE), fetch, and act on a run awaiting human approval.
 
-Orchestration lives in `src.services.run_service`; this module is HTTP semantics only
+Orchestration lives in `smartagent.services.run_service`; this module is HTTP semantics only
 — validate, enforce tenancy, persist the `runs` row, delegate, render.
 
 HITL is mid-run (V0.2 close-out): a run executes until the execute node hits a resource whose
@@ -16,7 +16,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from smartagent.adapters.audit import write_audit
@@ -43,10 +43,10 @@ from smartagent.iam.permission_manager import PermissionContext, Principal
 from smartagent.services.experiment_service import ExperimentService, subject_key_for
 from smartagent.services.run_service import RunService
 from smartagent.util import new_id, utcnow
-from src.events.events import run_failed
-from src.llm.base import LLMGateway
-from src.memory.manager import MemoryManager
-from src.tools.registry import ToolRegistry
+from ouroboros.events.events import run_failed
+from ouroboros.llm.base import LLMGateway
+from ouroboros.memory.manager import MemoryManager
+from ouroboros.tools.registry import ToolRegistry
 
 router = APIRouter(tags=["runs"])
 logger = logging.getLogger(__name__)
@@ -77,8 +77,11 @@ def _to_run_out(run: Run, steps: list[RunStep]) -> RunOut:
     return RunOut(
         run_id=run.id,
         agent_id=run.agent_id,
+        input=run.input,
+        conversation_id=run.conversation_id,
         status=run.status,
         result=run.result,
+        error=run.error,
         steps=[
             StepOut(
                 seq=s.seq,
@@ -105,6 +108,8 @@ def _to_run_out(run: Run, steps: list[RunStep]) -> RunOut:
             )
             for p in (run.pending_approvals or [])
         ],
+        cost=float(run.cost or 0),
+        model=run.model,
         created_at=run.created_at,
         finished_at=run.finished_at,
     )
@@ -132,7 +137,11 @@ async def _resolve_variant(
     subject = subject_key_for(user_id, principal.user_id, run_id)
     assignment = await service.assign(experiment, subject)
     variant_agent = await db.get(Agent, assignment.agent_id)
-    if variant_agent is None or variant_agent.tenant_id != principal.tenant_id:
+    if (
+        variant_agent is None
+        or variant_agent.tenant_id != principal.tenant_id
+        or variant_agent.status != "active"
+    ):
         logger.warning(
             "experiment %s variant %s points at missing agent %s; serving the entry agent",
             experiment.id, assignment.variant, assignment.agent_id,
@@ -185,7 +194,7 @@ async def create_run(
         )
 
     agent = await db.get(Agent, agent_id)
-    if agent is None or agent.tenant_id != principal.tenant_id:
+    if agent is None or agent.tenant_id != principal.tenant_id or agent.status != "active":
         raise _not_found("agent", agent_id)
 
     run_id = new_id("run")
@@ -202,6 +211,7 @@ async def create_run(
         agent_id=agent.id,
         tenant_id=agent.tenant_id,
         user_id=body.user_id,
+        conversation_id=body.conversation_id,
         input=body.input,
         status="running",
         trace_id=getattr(request.state, "trace_id", None),
@@ -215,18 +225,53 @@ async def create_run(
 
     if body.stream:
         return StreamingResponse(
-            _stream_run(service, agent, run, body, registry),
+            _stream_run(service, agent, run, body, registry, principal.user_id),
             media_type="text/event-stream",
         )
 
     result = await service.start(
-        agent, run, task=body.input, user_id=body.user_id, registry=registry
+        agent,
+        run,
+        task=body.input,
+        user_id=body.user_id,
+        registry=registry,
+        conversation_id=body.conversation_id,
     )
-    await service.finalize(agent, run, result, user_id=body.user_id)
+    await service.finalize(
+        agent, run, result, user_id=body.user_id, conversation_id=body.conversation_id
+    )
     return _to_run_out(run, await _load_steps(db, run.id))
 
 
-async def _stream_run(service: RunService, agent: Agent, run: Run, body: RunCreateRequest, registry):
+@router.get("/agents/{agent_id}/runs", response_model=list[RunOut])
+async def list_agent_runs(
+    agent_id: str,
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+    _: None = Depends(require_permission("run:execute")),
+):
+    agent = await db.get(Agent, agent_id)
+    if agent is None or agent.tenant_id != principal.tenant_id:
+        raise _not_found("agent", agent_id)
+    runs = (
+        await db.execute(
+            select(Run)
+            .where(Run.agent_id == agent_id, Run.tenant_id == principal.tenant_id)
+            .order_by(Run.created_at.desc())
+            .limit(20)
+        )
+    ).scalars().all()
+    return [_to_run_out(run, await _load_steps(db, run.id)) for run in runs]
+
+
+async def _stream_run(
+    service: RunService,
+    agent: Agent,
+    run: Run,
+    body: RunCreateRequest,
+    registry,
+    caller_id: str,
+):
     """Drain runtime events into SSE frames, then finalize.
 
     Persisting from inside the generator is safe: FastAPI registers `yield` dependencies on
@@ -239,7 +284,13 @@ async def _stream_run(service: RunService, agent: Agent, run: Run, body: RunCrea
     async def produce():
         try:
             return await service.start(
-                agent, run, task=body.input, user_id=body.user_id, registry=registry, queue=queue
+                agent,
+                run,
+                task=body.input,
+                user_id=body.user_id or caller_id,
+                registry=registry,
+                queue=queue,
+                conversation_id=body.conversation_id,
             )
         finally:
             await queue.put(_STREAM_DONE)
@@ -261,7 +312,9 @@ async def _stream_run(service: RunService, agent: Agent, run: Run, body: RunCrea
         yield to_sse(run_failed(run.id, str(exc)))
         return
 
-    await service.finalize(agent, run, result, user_id=body.user_id)
+    await service.finalize(
+        agent, run, result, user_id=body.user_id, conversation_id=body.conversation_id
+    )
 
 
 @router.get("/runs/{run_id}", response_model=RunOut)
@@ -274,6 +327,46 @@ async def get_run(
     if run is None or run.tenant_id != principal.tenant_id:
         raise _not_found("run", run_id)
     return _to_run_out(run, await _load_steps(db, run_id))
+
+
+@router.delete("/runs/{run_id}", status_code=204)
+async def delete_run(
+    run_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+    _: None = Depends(require_permission("run:execute")),
+):
+    run = await db.get(Run, run_id)
+    if run is None or run.tenant_id != principal.tenant_id:
+        raise _not_found("run", run_id)
+    if run.status not in {"completed", "failed", "canceled"}:
+        raise _invalid_state("only completed, failed, or canceled runs can be deleted")
+
+    child_runs = (
+        await db.execute(
+            select(Run).where(
+                Run.parent_run_id == run_id,
+                Run.tenant_id == principal.tenant_id,
+            )
+        )
+    ).scalars().all()
+    for child in child_runs:
+        child.parent_run_id = None
+
+    await db.execute(delete(RunStep).where(RunStep.run_id == run_id))
+    await db.delete(run)
+    await db.commit()
+    await write_audit(
+        db,
+        tenant_id=principal.tenant_id,
+        action="run.delete",
+        result="success",
+        actor=principal.user_id,
+        resource_type="run",
+        resource_id=run_id,
+        trace_id=getattr(request.state, "trace_id", None),
+    )
 
 
 @router.post("/runs/{run_id}/actions", response_model=RunOut)
@@ -363,5 +456,7 @@ async def run_action(
         logger.warning("resume rejected: run_id=%s: %s", run_id, exc)
         raise _invalid_state(f"run {run_id} cannot be resumed: {exc}") from exc
 
-    await service.finalize(agent, run, result, user_id=run.user_id)
+    await service.finalize(
+        agent, run, result, user_id=run.user_id, conversation_id=run.conversation_id
+    )
     return _to_run_out(run, await _load_steps(db, run_id))

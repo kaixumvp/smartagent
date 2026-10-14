@@ -1,11 +1,11 @@
 import pytest
 
-from src.plugins.base import InvokeContext, PluginManifest
-from src.skills.agent_skill import AgentSkill
-from src.skills.base import build_skill
-from src.skills.flow_skill import FlowSkill
-from src.skills.function_skill import FunctionSkill
-from src.skills.prompt_skill import PromptSkill
+from ouroboros.plugins.base import InvokeContext, PluginManifest
+from ouroboros.skills.agent_skill import AgentSkill
+from ouroboros.skills.base import build_skill
+from ouroboros.skills.flow_skill import FlowSkill
+from ouroboros.skills.function_skill import FunctionSkill
+from ouroboros.skills.prompt_skill import PromptSkill
 
 
 @pytest.mark.asyncio

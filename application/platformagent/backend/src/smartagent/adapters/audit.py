@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smartagent.db.models import AuditLog
 from smartagent.util import new_id
-from src.ports import PermissionContext, PermissionDecision
+from ouroboros.ports import PermissionContext, PermissionDecision
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,9 @@
 import pytest
 
 from conftest import FakeLongTermMemory, FakeWorkingMemory
-from src.memory.consolidator import Consolidator
-from src.memory.manager import MemoryManager
-from src.ports import MemoryEntry
+from ouroboros.memory.consolidator import Consolidator
+from ouroboros.memory.manager import MemoryManager
+from ouroboros.ports import MemoryEntry
 
 
 def test_consolidator_extracts_user_and_final_answer():

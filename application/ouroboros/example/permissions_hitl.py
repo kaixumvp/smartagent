@@ -9,11 +9,11 @@
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.core.checkpointer import InMemoryCheckpointer
-from src.plugins.registry import PluginRegistry
-from src.ports import PermissionContext, PermissionDecision, check_permission
-from src.tools.base import BaseTool, ToolResult
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.core.checkpointer import InMemoryCheckpointer
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import PermissionContext, PermissionDecision, check_permission
+from ouroboros.tools.base import BaseTool, ToolResult
 
 from _shared import ScriptedLLM, finish, plan, tool_call
 

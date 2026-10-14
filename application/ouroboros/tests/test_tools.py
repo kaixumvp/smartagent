@@ -1,9 +1,9 @@
 import pytest
 
-from src.tools.base import ToolResult
-from src.tools.builtin.calculator import CalculatorTool
-from src.tools.http_openapi import build_url_template, load_spec, operation_to_json_schema
-from src.tools.registry import ToolRegistry, build_default_registry
+from ouroboros.tools.base import ToolResult
+from ouroboros.tools.builtin.calculator import CalculatorTool
+from ouroboros.tools.http_openapi import build_url_template, load_spec, operation_to_json_schema
+from ouroboros.tools.registry import ToolRegistry, build_default_registry
 
 
 @pytest.mark.asyncio

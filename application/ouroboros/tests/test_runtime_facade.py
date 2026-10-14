@@ -3,20 +3,20 @@ import asyncio
 import pytest
 
 from conftest import MockLLMGateway, build_default_plugins
-from src.core.checkpointer import InMemoryCheckpointer
-from src.core.nodes.execute import run_execute
-from src.core.resilience import RetryPolicy
-from src.core.runtime import (
+from ouroboros.core.checkpointer import InMemoryCheckpointer
+from ouroboros.core.nodes.execute import run_execute
+from ouroboros.core.resilience import RetryPolicy
+from ouroboros.core.runtime import (
     AgentDefinition,
     AgentRuntime,
     RunContext,
     RuntimeConfig,
     RuntimeDeps,
 )
-from src.llm.base import LLMResponse, ToolCall, Usage
-from src.plugins.registry import PluginRegistry
-from src.ports import PluginManifest, PermissionContext, PermissionDecision
-from src.skills.agent_skill import AgentSkill
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import PluginManifest, PermissionContext, PermissionDecision
+from ouroboros.skills.agent_skill import AgentSkill
 
 
 def _plan_response() -> LLMResponse:

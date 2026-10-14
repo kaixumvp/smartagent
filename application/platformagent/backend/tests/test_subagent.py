@@ -1,7 +1,7 @@
 import pytest
 
-from src.plugins.base import InvokeContext, PluginManifest
-from src.skills.agent_skill import AgentSkill
+from ouroboros.plugins.base import InvokeContext, PluginManifest
+from ouroboros.skills.agent_skill import AgentSkill
 
 
 @pytest.mark.asyncio

@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://smartagent:smartagent@localhost:5432/smartagent"
+    capability_registry_url: str = "http://localhost:8010"
+    capability_integration_key: str = ""
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -70,7 +72,7 @@ class Settings(BaseSettings):
     # database (tests, or a deployment that runs the sweep as a separate job).
     eval_sweep_on_startup: bool = True
 
-    # Cost: {"model": [input_per_1k, output_per_1k]} overriding src.pricing defaults.
+    # Cost: {"model": [input_per_1k, output_per_1k]} overriding smartagent.pricing defaults.
     model_prices: dict[str, list[float]] = {}
 
 

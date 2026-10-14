@@ -62,14 +62,14 @@ async def create_experiment(
         )
 
     entry = await db.get(Agent, body.entry_agent_id)
-    if entry is None or entry.tenant_id != principal.tenant_id:
+    if entry is None or entry.tenant_id != principal.tenant_id or entry.status != "active":
         raise HTTPException(
             status_code=404,
             detail={"code": "RESOURCE_NOT_FOUND", "message": f"agent {body.entry_agent_id} not found"},
         )
     for variant in body.variants:
         agent = await db.get(Agent, variant.agent_id)
-        if agent is None or agent.tenant_id != principal.tenant_id:
+        if agent is None or agent.tenant_id != principal.tenant_id or agent.status != "active":
             raise HTTPException(
                 status_code=404,
                 detail={"code": "RESOURCE_NOT_FOUND", "message": f"agent {variant.agent_id} not found"},

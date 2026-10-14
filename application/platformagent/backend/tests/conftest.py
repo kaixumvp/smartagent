@@ -7,13 +7,10 @@ from pathlib import Path
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["EVAL_SWEEP_ON_STARTUP"] = "false"
 
-# Let pytest import the packages without installing them (business + agent-core)
+# Let pytest import the business package without installing it. `ouroboros` is a regular
+# installed dependency now, so it needs nothing here.
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-CORE_SRC = ROOT.parent / "ouroboros"
-for path in (SRC, CORE_SRC):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+sys.path.insert(0, str(ROOT / "src"))
 
 from sqlalchemy.sql import operators as sa_operators  # noqa: E402
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList, UnaryExpression  # noqa: E402
@@ -21,10 +18,10 @@ from sqlalchemy.sql.expression import Delete  # noqa: E402
 
 from smartagent.db.models import AuditLog, Agent, Run, RunStep  # noqa: E402
 from smartagent.iam.permission_manager import PermissionContext, Principal  # noqa: E402
-from src.llm.base import LLMResponse, Usage  # noqa: E402
-from src.plugins.registry import PluginRegistry  # noqa: E402
-from src.tools.base import BaseTool, ToolResult  # noqa: E402
-from src.tools.registry import ToolRegistry, build_default_registry  # noqa: E402
+from ouroboros.llm.base import LLMResponse, Usage  # noqa: E402
+from ouroboros.plugins.registry import PluginRegistry  # noqa: E402
+from ouroboros.tools.base import BaseTool, ToolResult  # noqa: E402
+from ouroboros.tools.registry import ToolRegistry, build_default_registry  # noqa: E402
 
 
 class MockLLMGateway:

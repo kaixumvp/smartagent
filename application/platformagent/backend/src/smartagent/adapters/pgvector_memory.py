@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smartagent.db.models import VectorMemory
 from smartagent.util import new_id
-from src.llm.embedder import Embedder
-from src.ports import MemoryEntry
+from ouroboros.llm.embedder import Embedder
+from ouroboros.ports import MemoryEntry
 
 
 class VectorMemoryStore:

@@ -1,10 +1,10 @@
 import pytest
 
 from conftest import MockLLMGateway, build_default_plugin_registry
-from src.core.nodes.decide import run_decide
-from src.core.nodes.execute import run_execute
-from src.core.nodes.observe import run_observe
-from src.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.core.nodes.decide import run_decide
+from ouroboros.core.nodes.execute import run_execute
+from ouroboros.core.nodes.observe import run_observe
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
 
 
 @pytest.mark.asyncio

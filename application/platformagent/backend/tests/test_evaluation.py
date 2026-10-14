@@ -13,8 +13,8 @@ from smartagent.adapters.llm_judge import LlmJudge
 from smartagent.config import Settings
 from smartagent.db.models import Agent, Evaluation, EvaluationResult, GoldenCase, Run
 from smartagent.services.evaluation_service import EvaluationJob, sweep_interrupted
-from src.llm.base import LLMResponse, Usage
-from src.tools.registry import build_default_registry
+from ouroboros.llm.base import LLMResponse, Usage
+from ouroboros.tools.registry import build_default_registry
 
 
 class ScriptedGateway:

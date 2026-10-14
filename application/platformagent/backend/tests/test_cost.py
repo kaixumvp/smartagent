@@ -10,7 +10,7 @@ import pytest
 from conftest import MockLLMGateway
 from smartagent.adapters.cost_gateway import RunScopedRoutingGateway
 from smartagent.pricing import estimate_cost
-from src.llm.base import LLMResponse, Usage
+from ouroboros.llm.base import LLMResponse, Usage
 
 
 class RecordingGateway:
@@ -174,7 +174,7 @@ async def test_routing_and_cost_survive_a_real_run():
     from smartagent.iam.permission_manager import PermissionManager
     from smartagent.services.run_service import RunService
     from smartagent.util import new_id
-    from src.tools.registry import build_default_registry
+    from ouroboros.tools.registry import build_default_registry
 
     class Gateway:
         def __init__(self):

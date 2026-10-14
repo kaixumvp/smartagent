@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Button, Descriptions, Space, Table, Tag, message } from 'antd'
-import { ArrowLeftOutlined, SyncOutlined } from '@ant-design/icons'
+import { Button, Descriptions, Popconfirm, Space, Table, Tag, message } from 'antd'
+import { ArrowLeftOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getProvider, listTools, syncProvider } from '../api'
+import { deleteProvider, getProvider, listTools, syncProvider } from '../api'
 
 export default function ProviderDetail() {
   const { id } = useParams()
@@ -11,6 +11,7 @@ export default function ProviderDetail() {
   const [tools, setTools] = useState([])
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -38,6 +39,19 @@ export default function ProviderDetail() {
       message.error(e?.response?.data?.detail || '同步失败')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const onDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteProvider(id)
+      message.success('MCP Provider 及其同步的 Tool 已删除')
+      navigate('/providers')
+    } catch (e) {
+      message.error(e?.response?.data?.detail || '删除失败')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -73,6 +87,15 @@ export default function ProviderDetail() {
       </Space>
       <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="Endpoint">{provider?.endpoint}</Descriptions.Item>
+        <Descriptions.Item label="认证方式">
+          {provider?.has_authentication ? (
+            <Tag color="blue">{provider.auth_type}</Tag>
+          ) : provider?.auth_type && provider.auth_type !== 'none' ? (
+            <Tag color="orange">{provider.auth_type}（未配置）</Tag>
+          ) : (
+            <Tag>无认证</Tag>
+          )}
+        </Descriptions.Item>
         <Descriptions.Item label="状态">
           {provider?.status === 'online' ? <Tag color="green">online</Tag> : <Tag>offline</Tag>}
         </Descriptions.Item>
@@ -81,11 +104,23 @@ export default function ProviderDetail() {
         </Descriptions.Item>
         <Descriptions.Item label="Tool 数量">{tools.length}</Descriptions.Item>
       </Descriptions>
-      <div style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<SyncOutlined />} loading={syncing} onClick={onSync}>
           Sync
         </Button>
-      </div>
+        <Popconfirm
+          title="删除 MCP Provider？"
+          description="该 Provider 同步的所有 Tool 也会被永久删除。"
+          okText="删除"
+          cancelText="取消"
+          okButtonProps={{ danger: true, loading: deleting }}
+          onConfirm={onDelete}
+        >
+          <Button danger icon={<DeleteOutlined />} loading={deleting}>
+            删除 Provider
+          </Button>
+        </Popconfirm>
+      </Space>
       <Table rowKey="id" columns={columns} dataSource={tools} loading={loading} />
     </div>
   )

@@ -18,8 +18,8 @@ from smartagent.config import Settings
 from smartagent.db.models import Agent, Run
 from smartagent.db.session import SessionLocal
 from smartagent.util import new_id, utcnow
-from src.core.runtime import RunResult
-from src.ports import InvokeContext, Principal
+from ouroboros.core.runtime import RunResult
+from ouroboros.ports import InvokeContext, Principal
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,11 @@ class DbSubagentRunner:
         # land here in parallel — and an AsyncSession is not safe for concurrent use.
         async with self._session_factory() as db:
             agent = await db.get(Agent, agent_ref)
-            if agent is None or agent.tenant_id != self._principal.tenant_id:
+            if (
+                agent is None
+                or agent.tenant_id != self._principal.tenant_id
+                or agent.status != "active"
+            ):
                 return f"sub-agent {agent_ref} not found"
 
             run = Run(

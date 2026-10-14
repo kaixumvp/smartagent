@@ -1,5 +1,7 @@
 # Ouroboros
 
+框架设计、版本路线图、使用说明和 UML 文档统一维护在仓库根的 [`documentation/ouroboros/`](../../documentation/ouroboros/)。
+
 业务无关的 **Agent 框架层**。提供 Agent 运行循环（Plan → Decide → Execute → Observe）、统一插件协议、Skill/Tool 执行、记忆机制与能力端口（Ports）。
 
 - **不依赖**业务层的 HTTP / 数据库 / 配置 / 多租户概念，可独立安装使用。
@@ -11,7 +13,7 @@
 
 | 能力 | 说明 |
 |------|------|
-| Agent 运行循环 | LangGraph 状态机：`Plan → Decide → Execute → Observe`，带迭代上限防死循环 |
+| Agent 运行循环 | 手写状态机：`Plan → Decide → Execute → Observe`，带迭代上限防死循环 |
 | 统一插件协议 | `Plugin` / `PluginManifest`，Tool / Skill / Knowledge… 统一接入 |
 | 工具执行 | 内置 `calculator`/`http`，支持 MCP 客户端、HTTP(OpenAPI) 适配 |
 | 技能执行 | 四种形态：`prompt` / `function` / `flow` / `agent` |
@@ -32,18 +34,19 @@ pip install ouroboros        # 发布后
 #   ouroboros = { path = "ouroboros", develop = true }
 ```
 
-依赖：`python>=3.11`、`langgraph`、`litellm`、`pydantic`、`httpx`、`redis`。
+依赖：`python>=3.11`、`litellm`、`pydantic`、`httpx`、`redis`。
 
 ---
 
 ## 目录结构
 
 ```
-src/
+ouroboros/
 ├── ports.py          # 能力端口 + 权限/记忆数据类型（框架与宿主的契约）
-├── state.py          # AgentState（循环内共享状态）
+├── log.py            # `ouroboros` 命名空间日志（NullHandler，不自行配置）
 ├── core/
 │   ├── runtime.py     # AgentRuntime 门面（run/resume + 强类型）
+│   ├── state.py       # AgentState（循环内共享状态）
 │   ├── resilience.py  # RetryPolicy / CircuitBreaker
 │   ├── checkpointer.py# InMemoryCheckpointer（默认实现）
 │   └── nodes/         # plan / decide / execute / observe
@@ -52,7 +55,11 @@ src/
 ├── tools/            # builtin / MCP / HTTP(OpenAPI) 工具
 ├── memory/           # WorkingBrain + Consolidator + MemoryManager 门面
 ├── events/           # 运行时事件模型（run.started/step.completed/…）
-└── llm/              # LLMGateway/Embedder 协议 + LiteLLM 实现
+├── knowledge/        # Knowledge/Retriever 端口插件形态
+├── evaluation/       # GoldenSet / run_evaluation / HeuristicJudge
+├── observability/    # Tracer（可选 OTel）+ Metrics
+├── security/         # 工具结果边界标注 + Redactor 脱敏
+└── llm/              # LLMGateway/Embedder 协议 + LiteLLM 实现 + 成本/路由
 ```
 
 ---
@@ -62,10 +69,10 @@ src/
 ```python
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.llm.litellm_gateway import LiteLLMGateway
-from src.plugins.registry import PluginRegistry
-from src.tools.registry import build_default_registry
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.llm.litellm_gateway import LiteLLMGateway
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.registry import build_default_registry
 
 
 async def main():
@@ -89,7 +96,7 @@ async def main():
 asyncio.run(main())
 ```
 
-`RuntimeDeps` 只要求 `llm`；其余端口（`permission_checker` / `long_term_memory` / `knowledge` / `event_sink` / `checkpointer` / `tracer` / `metrics` …）按需注入，全部契约集中在 `src.ports`。
+`RuntimeDeps` 只要求 `llm`；其余端口（`permission_checker` / `long_term_memory` / `knowledge` / `event_sink` / `checkpointer` / `tracer` / `metrics` …）按需注入，全部契约集中在 `ouroboros.ports`。
 
 ---
 
@@ -97,7 +104,7 @@ asyncio.run(main())
 
 ### AgentState（白板式共享状态）
 
-四个节点不互相传参，而是读写同一份 `AgentState`（`TypedDict`）。节点返回一个 dict，LangGraph 自动 merge 回状态。
+四个节点不互相传参，而是读写同一份 `AgentState`（`TypedDict`）。节点返回一个 dict，运行时自动 merge 回状态。
 
 关键字段：`task` / `messages` / `plan` / `action` / `action_input` / `last_tool_result` / `iteration` / `max_iterations` / `status` / `result` / `memory_ctx` / `approvals` / `subagent_depth` / `token_usage`。
 
@@ -127,7 +134,7 @@ plan ─► decide ─► execute ─► observe ─┐
 ### PermissionChecker
 
 ```python
-from src.ports import PermissionChecker, PermissionContext, PermissionDecision, check_permission
+from ouroboros.ports import PermissionChecker, PermissionContext, PermissionDecision, check_permission
 
 class MyPermissionChecker(PermissionChecker):
     def check(self, ctx, action, resource_type, resource_id,
@@ -144,7 +151,7 @@ class MyPermissionChecker(PermissionChecker):
 ### LongTermMemory / WorkingMemory
 
 ```python
-from src.ports import LongTermMemory, MemoryEntry
+from ouroboros.ports import LongTermMemory, MemoryEntry
 
 class InMemoryLongTerm(LongTermMemory):
     async def add(self, db, *, tenant_id, user_id, session_id, content,
@@ -152,12 +159,12 @@ class InMemoryLongTerm(LongTermMemory):
     async def recall(self, db, tenant_id, user_id, query, top_k=5) -> list[MemoryEntry]: ...
 ```
 
-> `db` 参数由宿主传入（如 `AsyncSession`），协议不约束其类型。框架自带的 Redis 实现见 `src.memory.working.WorkingBrain`。
+> `db` 参数由宿主传入（如 `AsyncSession`），协议不约束其类型。框架自带的 Redis 实现见 `ouroboros.memory.working.WorkingBrain`。
 
 ### Embedder
 
 ```python
-from src.llm.embedder import LiteLLMEmbedder, HashEmbedder
+from ouroboros.llm.embedder import LiteLLMEmbedder, HashEmbedder
 
 embedder = LiteLLMEmbedder("text-embedding-3-small", api_key="sk-...")  # 有 key
 embedder = HashEmbedder(1536)                                          # 离线回退（确定性 hash）
@@ -168,7 +175,7 @@ embedder = HashEmbedder(1536)                                          # 离线�
 ## 开发自定义 Tool
 
 ```python
-from src.tools.base import BaseTool, ToolResult
+from ouroboros.tools.base import BaseTool, ToolResult
 
 class WeatherTool(BaseTool):
     name = "weather"
@@ -194,12 +201,12 @@ registry.register_tool(WeatherTool())   # 内部用 ToolAsPlugin 适配成 Plugi
 Skill 是 `kind="skill"` 的插件，四种形态，用 `PluginManifest` 声明能力：
 
 ```python
-from src.plugins.base import PluginManifest
-from src.plugins.registry import PluginRegistry
-from src.skills.prompt_skill import PromptSkill
-from src.skills.function_skill import FunctionSkill
-from src.skills.agent_skill import AgentSkill
-from src.skills.flow_skill import FlowSkill
+from ouroboros.plugins.base import PluginManifest
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.skills.prompt_skill import PromptSkill
+from ouroboros.skills.function_skill import FunctionSkill
+from ouroboros.skills.agent_skill import AgentSkill
+from ouroboros.skills.flow_skill import FlowSkill
 
 registry = PluginRegistry()
 
@@ -233,7 +240,7 @@ registry.register(FlowSkill(             # flow：多步流程（注入 run_flow
 ## 插件引用与命名
 
 ```python
-from src.plugins.manifest import parse_ref, format_ref
+from ouroboros.plugins.manifest import parse_ref, format_ref
 
 parse_ref("tool:calculator")        # PluginRef(kind="tool", name="calculator")
 parse_ref("skill:refund@1.2.0")     # PluginRef(kind="skill", name="refund", version="1.2.0")
@@ -262,9 +269,9 @@ deps = RuntimeDeps(llm=llm, event_sink=sink)
 ## 记忆编排
 
 ```python
-from src.memory.manager import MemoryManager
-from src.memory.consolidator import Consolidator
-from src.memory.working import WorkingBrain
+from ouroboros.memory.manager import MemoryManager
+from ouroboros.memory.consolidator import Consolidator
+from ouroboros.memory.working import WorkingBrain
 
 manager = MemoryManager(
     working=WorkingBrain(redis_client),
@@ -326,13 +333,13 @@ poetry run pytest            # 168 个单元测试，无外部依赖（Redis/LLM
 
 ## 日志
 
-框架用标准库 `logging` 在 `ouroboros` 命名空间下输出日志（`src.core.runtime`、`src.core.nodes.execute` …），**从不自行配置 handler/level**——是否开启由宿主决定。
+框架用标准库 `logging` 在 `ouroboros` 命名空间下输出日志（`ouroboros.core.runtime`、`ouroboros.core.nodes.execute` …），**从不自行配置 handler/level**——是否开启由宿主决定。
 
 宿主开启：
 
 ```python
 import logging
-from src.log import configure_logging
+from ouroboros.log import configure_logging
 
 configure_logging(level=logging.INFO)   # 或 logging.DEBUG 看更细
 ```

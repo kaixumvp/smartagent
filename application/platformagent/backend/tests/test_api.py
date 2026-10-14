@@ -16,10 +16,10 @@ from conftest import (
 )
 from smartagent.api.deps import get_llm_gateway, get_memory_manager, get_tool_registry
 from smartagent.api.security import get_current_user, get_permission_context
-from smartagent.db.models import Agent
+from smartagent.db.models import Agent, Run, RunStep
 from smartagent.db.session import get_db
 from smartagent.main import app
-from src.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
 
 
 def _plan_response() -> LLMResponse:
@@ -116,17 +116,104 @@ def test_create_run_invalid_input():
     assert resp.json()["error"]["code"] == "INVALID_ARGUMENT"
 
 
+def test_delete_completed_run_removes_steps_and_audits():
+    run = Run(
+        id="run_delete",
+        agent_id="agent_test",
+        tenant_id="default",
+        input="old task",
+        status="completed",
+    )
+    child_run = Run(
+        id="run_child",
+        agent_id="agent_test",
+        tenant_id="default",
+        input="child task",
+        status="completed",
+        parent_run_id=run.id,
+    )
+    step = RunStep(
+        id="step_delete",
+        run_id=run.id,
+        seq=1,
+        node="plan",
+        status="completed",
+    )
+    fake_db = FakeSession(_calc_agent(), run, child_run, step)
+    _install_overrides(fake_db, MockLLMGateway([]), FakeMemoryManager())
+
+    try:
+        with TestClient(app) as client:
+            response = client.delete(f"/v1/runs/{run.id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 204
+    assert fake_db.runs == [child_run]
+    assert child_run.parent_run_id is None
+    assert fake_db.steps == []
+    assert "run.delete" in fake_db.audit_actions()
+
+
+def test_delete_running_run_is_rejected():
+    run = Run(
+        id="run_running",
+        agent_id="agent_test",
+        tenant_id="default",
+        input="active task",
+        status="running",
+    )
+    fake_db = FakeSession(_calc_agent(), run)
+    _install_overrides(fake_db, MockLLMGateway([]), FakeMemoryManager())
+
+    try:
+        with TestClient(app) as client:
+            response = client.delete(f"/v1/runs/{run.id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    assert fake_db.runs == [run]
+
+
+def test_delete_run_does_not_expose_other_tenant():
+    run = Run(
+        id="run_other_tenant",
+        agent_id="agent_test",
+        tenant_id="tenant_other",
+        input="private task",
+        status="completed",
+    )
+    fake_db = FakeSession(run)
+    _install_overrides(fake_db, MockLLMGateway([]), FakeMemoryManager())
+
+    try:
+        with TestClient(app) as client:
+            response = client.delete(f"/v1/runs/{run.id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert fake_db.runs == [run]
+
+
 # --------------------------------------------------------------- no high-risk tool
 def test_create_run_end_to_end():
     llm = MockLLMGateway([_plan_response(), _calc_call_response(), _finish_response()])
     fake_db = FakeSession(_calc_agent())
-    _install_overrides(fake_db, llm, FakeMemoryManager())
+    memory = FakeMemoryManager()
+    _install_overrides(fake_db, llm, memory)
 
     try:
         with TestClient(app) as client:
             resp = client.post(
                 "/v1/agents/agent_test/runs",
-                json={"input": "Calculate 3*8 then add 100", "stream": False, "user_id": "u_1"},
+                json={
+                    "input": "Calculate 3*8 then add 100",
+                    "stream": False,
+                    "user_id": "u_1",
+                    "conversation_id": "conversation_test",
+                },
             )
     finally:
         app.dependency_overrides.clear()
@@ -135,8 +222,11 @@ def test_create_run_end_to_end():
     data = resp.json()
     assert data["status"] == "completed"
     assert data["run_id"].startswith("run_")
+    assert data["conversation_id"] == "conversation_test"
     assert "124" in (data["result"] or "")
     assert len(data["steps"]) >= 4
+    history = memory.history["chat:default:agent_test:u_admin:conversation_test"]
+    assert [message["role"] for message in history] == ["user", "assistant"]
 
 
 def test_create_run_stream_emits_event_sequence():

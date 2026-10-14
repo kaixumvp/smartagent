@@ -18,7 +18,7 @@ model in `agent.config.model` keeps it — routing only decides for agents that 
 import logging
 
 from smartagent.pricing import estimate_cost
-from src.llm.cost import message_length_classifier
+from ouroboros.llm.cost import message_length_classifier
 
 logger = logging.getLogger(__name__)
 

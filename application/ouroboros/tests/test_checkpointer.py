@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.checkpointer import InMemoryCheckpointer
+from ouroboros.core.checkpointer import InMemoryCheckpointer
 
 
 @pytest.mark.asyncio

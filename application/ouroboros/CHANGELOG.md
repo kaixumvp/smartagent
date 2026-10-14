@@ -2,6 +2,31 @@
 
 本文件按 [SemVer](https://semver.org/) 记录 Ouroboros 的变更。v1.0 起：破坏性变更只出现在 major，弃用至少跨一个 minor。
 
+## [2.0.0] - 2026-10-10
+
+### 变更（破坏性）
+- **导入包名 `src` → `ouroboros`**：发行包 `ouroboros` 此前导出的顶层包字面就叫 `src`，
+  与宿主自己的 src-layout 直接冲突，也与本文件 v1.0 段声明的公共 API 面（「顶层 `ouroboros`」）
+  从未一致过。所有 `from src.x import y` 改为 `from ouroboros.x import y`。
+  公共 API 面的**符号**未变，`__all__` 无改动，仅包名前缀变化。
+
+  受影响的导入写法（逐一替换即可）：
+
+  | 旧 | 新 |
+  |---|---|
+  | `from src import AgentRuntime` | `from ouroboros import AgentRuntime` |
+  | `from src.ports import LLMGateway` | `from ouroboros.ports import LLMGateway` |
+  | `from src.core.runtime import AgentDefinition` | `from ouroboros.core.runtime import AgentDefinition` |
+  | `from src.tools.registry import build_default_registry` | `from ouroboros.tools.registry import build_default_registry` |
+
+  日志命名空间同步从 `src` 改为 `ouroboros`（`logging.getLogger("ouroboros")`）。
+
+### 移除
+- `langgraph` 依赖。核心循环自 v0.3 起就是 `core/runtime.py` 里的手写状态机，
+  `build_graph`/`run_agent` 在 v1.0.0 已删除，该依赖自那时起就无人 import。
+  连带移除了 `langgraph` / `langgraph-checkpoint` / `langgraph-prebuilt` / `langgraph-sdk` /
+  `langchain-core` / `langchain-protocol` / `xxhash` / `ormsgpack` 共 8 个传递依赖。
+
 ## [1.1.0] - 2026-08-26
 
 ### 新增

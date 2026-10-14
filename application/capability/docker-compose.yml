@@ -6,23 +6,29 @@ services:
       POSTGRES_PASSWORD: registry
       POSTGRES_DB: registry
     ports:
-      - "5432:5432"
+      # Host port shifted off 5432 so this stack can run alongside the business layer's
+      # postgres (application/platformagent/backend/docker-compose.yml), which owns 5432.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   backend:
     build: ./backend
     environment:
+      MCP_AUTH_ENCRYPTION_KEY: ${MCP_AUTH_ENCRYPTION_KEY:-}
+      CAPABILITY_INTEGRATION_KEY: ${CAPABILITY_INTEGRATION_KEY:-}
       DATABASE_URL: postgresql+psycopg2://registry:registry@db:5432/registry
     ports:
-      - "8000:8000"
+      # Host port shifted off 8000, which is where the business layer's uvicorn runs.
+      - "8010:8000"
     depends_on:
       - db
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      # 3010 instead of 3000 to stay clear of the console and other dev servers.
+      - "3010:80"
     depends_on:
       - backend
 

@@ -2,13 +2,13 @@ import pytest
 
 from conftest import build_default_plugin_registry
 from smartagent.iam.permission_manager import PermissionContext, PermissionManager
-from src.core.nodes.execute import run_execute
-from src.plugins.base import InvokeContext, PluginManifest
-from src.plugins.manifest import format_ref, parse_ref
-from src.plugins.registry import PluginRegistry
-from src.skills.function_skill import FunctionSkill
-from src.skills.prompt_skill import PromptSkill
-from src.tools.base import ToolResult
+from ouroboros.core.nodes.execute import run_execute
+from ouroboros.plugins.base import InvokeContext, PluginManifest
+from ouroboros.plugins.manifest import format_ref, parse_ref
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.skills.function_skill import FunctionSkill
+from ouroboros.skills.prompt_skill import PromptSkill
+from ouroboros.tools.base import ToolResult
 
 
 def test_parse_ref():

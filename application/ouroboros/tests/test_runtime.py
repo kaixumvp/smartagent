@@ -1,11 +1,11 @@
 import pytest
 
 from conftest import MockLLMGateway, build_default_plugin_registry
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
-from src.core.nodes.execute import run_execute
-from src.core.resilience import RetryPolicy
-from src.llm.base import LLMResponse, ToolCall, Usage
-from src.ports import PermissionContext, PermissionDecision
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
+from ouroboros.core.nodes.execute import run_execute
+from ouroboros.core.resilience import RetryPolicy
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.ports import PermissionContext, PermissionDecision
 
 
 def _calc_call_response() -> LLMResponse:

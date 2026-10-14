@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smartagent.iam import grants as grants_mod
 from smartagent.iam import rbac
-from src.ports import (
+from ouroboros.ports import (
     PermissionContext,
     PermissionDecision,
     Principal,

@@ -18,7 +18,7 @@ from smartagent.db.models import Agent, AgentExperiment, ExperimentAssignment
 from smartagent.db.session import get_db
 from smartagent.main import app
 from smartagent.services.experiment_service import ExperimentService, pick_variant, subject_key_for
-from src.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
 
 VARIANTS = [
     {"label": "A", "agent_id": "agent_a", "weight": 90},

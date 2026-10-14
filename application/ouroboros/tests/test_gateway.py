@@ -3,8 +3,8 @@
 import litellm
 import pytest
 
-from src.llm.embedder import LiteLLMEmbedder
-from src.llm.litellm_gateway import LiteLLMGateway
+from ouroboros.llm.embedder import LiteLLMEmbedder
+from ouroboros.llm.litellm_gateway import LiteLLMGateway
 
 
 class _FakeUsage:

@@ -9,12 +9,12 @@
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
-from src.core.resilience import RetryPolicy
-from src.llm.base import LLMResponse, Usage
-from src.llm.cost import CachingGateway, TieredRouter, TokenBudget, message_length_classifier
-from src.plugins.registry import PluginRegistry
-from src.tools.registry import build_default_registry
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
+from ouroboros.core.resilience import RetryPolicy
+from ouroboros.llm.base import LLMResponse, Usage
+from ouroboros.llm.cost import CachingGateway, TieredRouter, TokenBudget, message_length_classifier
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.registry import build_default_registry
 
 from _shared import ScriptedLLM
 

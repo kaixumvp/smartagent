@@ -1,4 +1,4 @@
-from src.events import (
+from ouroboros.events import (
     RuntimeEvent,
     run_approved,
     run_awaiting_human,
@@ -34,7 +34,7 @@ def test_step_completed():
 
 
 def test_step_completed_accepts_model():
-    from src.core.runtime import Step
+    from ouroboros.core.runtime import Step
 
     e = step_completed(Step(seq=1, node="plan", run_id="r1"))
     assert e.data["node"] == "plan"

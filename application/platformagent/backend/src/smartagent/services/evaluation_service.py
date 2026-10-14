@@ -34,7 +34,7 @@ from smartagent.db.session import SessionLocal
 from smartagent.iam.permission_manager import PermissionManager
 from smartagent.services.run_service import RunService
 from smartagent.util import new_id, utcnow
-from src.evaluation import HeuristicJudge
+from ouroboros.evaluation import HeuristicJudge
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class EvaluationJob:
             logger.warning("evaluation %s vanished before it started", self._evaluation_id)
             return None, None, [], None
         agent = await db.get(Agent, evaluation.agent_id)
-        if agent is None:
+        if agent is None or agent.status != "active":
             raise RuntimeError(f"agent {evaluation.agent_id} not found")
 
         cases = (
@@ -150,7 +150,7 @@ class EvaluationJob:
             )
             try:
                 agent = await db.get(Agent, agent_id)
-                if agent is None:
+                if agent is None or agent.status != "active":
                     raise RuntimeError(f"agent {agent_id} not found")
 
                 service = RunService(

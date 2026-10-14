@@ -8,11 +8,11 @@ EventSink / Checkpointer / SubagentRunner / FlowRunner，然后一次性接线�
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.core.checkpointer import InMemoryCheckpointer
-from src.llm.embedder import HashEmbedder
-from src.plugins.registry import PluginRegistry
-from src.ports import (
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.core.checkpointer import InMemoryCheckpointer
+from ouroboros.llm.embedder import HashEmbedder
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import (
     InvokeContext,
     KnowledgeEntry,
     LongTermMemory,
@@ -22,8 +22,8 @@ from src.ports import (
     WorkingMemory,
     check_permission,
 )
-from src.skills.manager import SkillManager
-from src.tools.registry import build_default_registry
+from ouroboros.skills.manager import SkillManager
+from ouroboros.tools.registry import build_default_registry
 
 from _shared import ScriptedLLM, finish, plan, tool_call
 

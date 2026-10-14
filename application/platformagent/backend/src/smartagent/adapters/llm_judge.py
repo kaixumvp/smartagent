@@ -13,7 +13,7 @@ import json
 import logging
 import re
 
-from src.ports import JudgeVerdict
+from ouroboros.ports import JudgeVerdict
 
 logger = logging.getLogger(__name__)
 

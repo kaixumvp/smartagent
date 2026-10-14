@@ -9,11 +9,11 @@
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.core.resilience import RetryPolicy
-from src.evaluation import Case, GoldenSet, HeuristicJudge, run_evaluation
-from src.plugins.registry import PluginRegistry
-from src.tools.registry import build_default_registry
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.core.resilience import RetryPolicy
+from ouroboros.evaluation import Case, GoldenSet, HeuristicJudge, run_evaluation
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.registry import build_default_registry
 
 from _shared import ScriptedLLM, finish, plan
 

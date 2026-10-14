@@ -1,10 +1,10 @@
 import pytest
 
 from conftest import FakeKnowledge, FakeLongTermMemory
-from src.knowledge import KnowledgePlugin
-from src.memory.consolidator import Consolidator
-from src.memory.reflect import Reflector
-from src.ports import InvokeContext, KnowledgeEntry
+from ouroboros.knowledge import KnowledgePlugin
+from ouroboros.memory.consolidator import Consolidator
+from ouroboros.memory.reflect import Reflector
+from ouroboros.ports import InvokeContext, KnowledgeEntry
 
 
 @pytest.mark.asyncio

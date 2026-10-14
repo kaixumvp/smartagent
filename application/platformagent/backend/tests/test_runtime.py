@@ -22,9 +22,9 @@ from smartagent.config import Settings
 from smartagent.db.models import Agent, Run
 from smartagent.iam.permission_manager import PermissionManager
 from smartagent.services.run_service import RunService
-from src.events.events import run_awaiting_human, run_completed, step_completed
-from src.plugins.registry import PluginRegistry
-from src.tools.registry import build_default_registry
+from ouroboros.events.events import run_awaiting_human, run_completed, step_completed
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.registry import build_default_registry
 
 
 def _service(db=None, settings: Settings | None = None) -> RunService:

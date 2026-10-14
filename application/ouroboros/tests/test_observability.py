@@ -1,7 +1,7 @@
 import pytest
 
-from src.observability.metrics import InMemoryMetrics, NoopMetrics
-from src.observability.trace import Tracer, get_tracer
+from ouroboros.observability.metrics import InMemoryMetrics, NoopMetrics
+from ouroboros.observability.trace import Tracer, get_tracer
 
 
 # OpenTelemetry is not installed in the test env → Tracer degrades to no-op.
@@ -36,10 +36,10 @@ def test_in_memory_metrics_records():
 @pytest.mark.asyncio
 async def test_runtime_records_metrics_and_redacts():
     from conftest import MockLLMGateway, build_default_plugins
-    from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-    from src.core.resilience import RetryPolicy
-    from src.llm.base import LLMResponse, ToolCall, Usage
-    from src.security import Redactor
+    from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+    from ouroboros.core.resilience import RetryPolicy
+    from ouroboros.llm.base import LLMResponse, ToolCall, Usage
+    from ouroboros.security import Redactor
 
     llm = MockLLMGateway([
         LLMResponse(content='[{"description": "x"}]', usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15)),

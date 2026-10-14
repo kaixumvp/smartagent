@@ -8,6 +8,8 @@ export default defineConfig({
     proxy: {
       '/tools': 'http://localhost:8000',
       '/providers': 'http://localhost:8000',
+      '/api-services': 'http://localhost:8000',
+      '/api-tools': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
     },
   },

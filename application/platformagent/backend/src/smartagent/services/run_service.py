@@ -33,7 +33,7 @@ from smartagent.adapters.subagent_runner import DbSubagentRunner
 from smartagent.config import Settings
 from smartagent.db.models import Agent, Run, RunStep
 from smartagent.util import new_id, utcnow
-from src.core.runtime import (
+from ouroboros.core.runtime import (
     AgentDefinition,
     AgentRuntime,
     RunContext,
@@ -41,8 +41,8 @@ from src.core.runtime import (
     RuntimeConfig,
     RuntimeDeps,
 )
-from src.plugins.registry import PluginRegistry
-from src.skills.manager import SkillManager
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.skills.manager import SkillManager
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,12 @@ class RunService:
         self._subagent_runner = DbSubagentRunner(
             principal=principal, settings=settings, child_runner=self._run_child
         )
-        self._loader = PluginLoader(tool_registry, SkillManager(run_subagent=self._subagent_runner))
+        self._loader = PluginLoader(
+            tool_registry,
+            SkillManager(run_subagent=self._subagent_runner),
+            capability_registry_url=settings.capability_registry_url,
+            capability_integration_key=settings.capability_integration_key,
+        )
 
     # ------------------------------------------------------------------ assembly
     async def load_registry(self, db: AsyncSession, agent: Agent) -> PluginRegistry:
@@ -146,8 +151,19 @@ class RunService:
             # long_term_memory intentionally unset — see module docstring, note 2.
         )
 
-    def session_id(self, agent: Agent, run: Run, user_id: str | None) -> str:
+    def session_id(
+        self,
+        agent: Agent,
+        run: Run,
+        user_id: str | None,
+        conversation_id: str | None = None,
+    ) -> str:
         """Working Brain key. Falls back to a per-run key for anonymous callers."""
+        if conversation_id:
+            return (
+                f"chat:{self._principal.tenant_id}:{agent.id}:"
+                f"{self._principal.user_id}:{conversation_id}"
+            )
         # Use the user_id as the session key for authenticated callers. For anonymous
         # callers, use the run id alone (shorter than agent:run) to avoid exceeding
         # the database column length for session identifiers.
@@ -162,9 +178,10 @@ class RunService:
         task: str,
         user_id: str | None,
         registry: PluginRegistry,
+        conversation_id: str | None = None,
         queue=None,
     ) -> RunResult:
-        session_id = self.session_id(agent, run, user_id)
+        session_id = self.session_id(agent, run, user_id, conversation_id)
         # Order matters — see module docstring, note 1.
         await self._memory.write(session_id, {"role": "user", "content": task})
         history = await self._memory.get_history(session_id)
@@ -273,6 +290,7 @@ class RunService:
         result: RunResult,
         *,
         user_id: str | None,
+        conversation_id: str | None = None,
     ) -> None:
         """Fold a RunResult back into persistence, memory, and the audit trail.
 
@@ -305,7 +323,7 @@ class RunService:
         else:
             # Only persist the turn once it actually produced an answer; a paused run would
             # otherwise write an empty assistant message into the session history.
-            await self._write_back(agent, run, result, user_id)
+            await self._write_back(agent, run, result, user_id, conversation_id)
 
         await flush_permission_decisions(
             self._db,
@@ -316,11 +334,18 @@ class RunService:
             trace_id=self._trace_id,
         )
 
-    async def _write_back(self, agent: Agent, run: Run, result: RunResult, user_id: str | None) -> None:
+    async def _write_back(
+        self,
+        agent: Agent,
+        run: Run,
+        result: RunResult,
+        user_id: str | None,
+        conversation_id: str | None = None,
+    ) -> None:
         """Persist the assistant turn and consolidate long-term memory (both best-effort)."""
         if not self._memory_write_back:
             return
-        session_id = self.session_id(agent, run, user_id)
+        session_id = self.session_id(agent, run, user_id, conversation_id)
         try:
             await self._memory.write(session_id, {"role": "assistant", "content": result.result or ""})
         except Exception:  # noqa: BLE001

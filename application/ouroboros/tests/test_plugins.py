@@ -1,9 +1,9 @@
 import pytest
 
-from src.plugins.base import InvokeContext, PluginManifest, ToolAsPlugin
-from src.plugins.manifest import format_ref, parse_ref
-from src.plugins.registry import PluginRegistry
-from src.tools.base import ToolResult
+from ouroboros.plugins.base import InvokeContext, PluginManifest, ToolAsPlugin
+from ouroboros.plugins.manifest import format_ref, parse_ref
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.tools.base import ToolResult
 
 
 def test_parse_ref():

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import os
 
-from src.llm.base import LLMResponse, ToolCall, Usage
-from src.llm.litellm_gateway import LiteLLMGateway
+from ouroboros.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.llm.litellm_gateway import LiteLLMGateway
 
 
 class ScriptedLLM:

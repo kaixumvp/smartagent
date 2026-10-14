@@ -4,17 +4,22 @@ Reads the `tools` / `skills` tables (business persistence) and registers framewo
 Legacy V0.1 `config.tools` entries are normalized to the V0.2 `config.plugins` shape.
 """
 
+import re
+import uuid
+
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from smartagent.adapters.capability_registry import CapabilityRegistryClient
+from smartagent.adapters.capability_tool import CapabilityApiTool, CapabilityMcpTool
 from smartagent.db.models import Skill, Tool
-from src.plugins.manifest import parse_ref
-from src.plugins.registry import PluginRegistry
-from src.skills.manager import SkillManager
-from src.tools.http_openapi import HttpOpenApiTool, build_url_template, load_spec, operation_to_json_schema
-from src.tools.mcp import McpTool
-from src.tools.registry import ToolRegistry
+from ouroboros.plugins.manifest import parse_ref
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.skills.manager import SkillManager
+from ouroboros.tools.http_openapi import HttpOpenApiTool, build_url_template, load_spec, operation_to_json_schema
+from ouroboros.tools.mcp import McpTool
+from ouroboros.tools.registry import ToolRegistry
 
 
 def extract_plugins(agent_config: dict | None) -> list[dict]:
@@ -35,9 +40,17 @@ def extract_plugins(agent_config: dict | None) -> list[dict]:
 class PluginLoader:
     """Loads and registers the plugins referenced by an Agent config."""
 
-    def __init__(self, tool_registry: ToolRegistry, skill_manager: SkillManager) -> None:
+    def __init__(
+        self,
+        tool_registry: ToolRegistry,
+        skill_manager: SkillManager,
+        capability_registry_url: str = "",
+        capability_integration_key: str = "",
+    ) -> None:
         self._tool_registry = tool_registry
         self._skill_manager = skill_manager
+        self._capability_registry_url = capability_registry_url
+        self._capability_integration_key = capability_integration_key
 
     async def load_for_agent(
         self,
@@ -49,7 +62,9 @@ class PluginLoader:
         for entry in extract_plugins(agent_config):
             kind = entry.get("type") or "tool"
             ref = entry.get("ref") or ""
-            if kind == "tool":
+            if kind in {"capability_provider", "capability_tool", "capability_api_tool"}:
+                await self._load_capability_plugins(registry, kind, ref)
+            elif kind == "tool":
                 tool = self._builtin_tool(ref) or await self._db_tool(db, tenant_id, ref)
                 if tool is not None:
                     registry.register_tool(tool)
@@ -59,6 +74,92 @@ class PluginLoader:
                     registry.register(skill)
             # model / knowledge / memory / node kinds are reserved for later versions.
         return registry
+
+    async def _load_capability_plugins(self, registry: PluginRegistry, kind: str, ref: str) -> None:
+        client = CapabilityRegistryClient(
+            self._capability_registry_url,
+            self._capability_integration_key,
+        )
+        if kind == "capability_api_tool":
+            try:
+                selected_tool_id = str(uuid.UUID(ref))
+            except ValueError as exc:
+                raise ValueError("Capability API Tool reference must be a valid Tool ID") from exc
+            tools = await client.list_tools()
+            item = next(
+                (
+                    candidate
+                    for candidate in tools
+                    if candidate.get("id") == selected_tool_id and candidate.get("source") == "api"
+                ),
+                None,
+            )
+            if item is None:
+                raise ValueError(f"Capability API Tool {selected_tool_id} is unavailable")
+            service_slug = _ascii_slug(item.get("service_name", "api"))[:12]
+            tool_slug = _ascii_slug(item.get("name", "tool"))[:32]
+            name = f"api_{service_slug}_{tool_slug}_{selected_tool_id[-8:]}"
+            description = item.get("description") or ""
+            if item.get("display_name") and item["display_name"] != item.get("name"):
+                description = f"{item['display_name']}: {description}".strip()
+            registry.register_tool(
+                CapabilityApiTool(
+                    client=client,
+                    tool_id=selected_tool_id,
+                    name=name,
+                    description=description,
+                    parameters=item.get("input_schema") or {},
+                    permission=item.get("permission", "read"),
+                )
+            )
+            return
+
+        if kind == "capability_provider":
+            provider_id = ref
+            selected_tool_id = None
+        else:
+            provider_id, separator, selected_tool_id = ref.partition("/")
+            if not separator or not selected_tool_id:
+                raise ValueError("Capability Tool references must be provider_id/tool_id")
+        try:
+            provider_id = str(uuid.UUID(provider_id))
+            if selected_tool_id is not None:
+                selected_tool_id = str(uuid.UUID(selected_tool_id))
+        except ValueError as exc:
+            raise ValueError("Capability references must contain valid provider and tool IDs") from exc
+
+        providers = await client.list_providers()
+        provider = next((item for item in providers if item.get("id") == provider_id), None)
+        if provider is None:
+            raise ValueError(f"Capability MCP Provider {provider_id} is unavailable")
+
+        tools = await client.list_provider_tools(provider_id)
+        matched_tool = selected_tool_id is None
+        for item in tools:
+            if selected_tool_id and item.get("id") != selected_tool_id:
+                continue
+            matched_tool = True
+            tool_id = item.get("id")
+            remote_name = item.get("name")
+            if not isinstance(tool_id, str) or not isinstance(remote_name, str) or not remote_name:
+                continue
+            provider_slug = _ascii_slug(provider.get("name", "provider"))[:12]
+            tool_slug = _ascii_slug(remote_name)[:32]
+            name = f"mcp_{provider_slug}_{tool_slug}_{tool_id[-8:]}"
+            description = item.get("description") or ""
+            if item.get("display_name") and item["display_name"] != remote_name:
+                description = f"{item['display_name']}: {description}".strip()
+            registry.register_tool(
+                CapabilityMcpTool(
+                    client=client,
+                    tool_id=tool_id,
+                    name=name,
+                    description=description,
+                    parameters=item.get("input_schema") or {},
+                )
+            )
+        if not matched_tool:
+            raise ValueError(f"Capability MCP Tool {selected_tool_id} is unavailable")
 
     def _builtin_tool(self, ref: str):
         parsed = parse_ref(ref)
@@ -141,3 +242,8 @@ def _resolve_operation(spec: dict, config: dict, endpoint: str) -> tuple[dict | 
             if config.get("path") == path and m == method:
                 return operation, build_url_template(servers, path), m
     return None, endpoint, config.get("method", "get")
+
+
+def _ascii_slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9_]+", "_", value).strip("_").lower()
+    return slug or "tool"

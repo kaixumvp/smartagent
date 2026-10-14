@@ -11,6 +11,7 @@ from smartagent.api.middleware import rate_limit_middleware, trace_middleware
 from smartagent.api.routes import (
     agents,
     auth,
+    capability,
     cost,
     evaluations,
     experiments,
@@ -57,8 +58,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title="SmartAgent",
-        version="0.2.0",
-        description="Single-agent multi-turn conversation + tool calling",
+        version="0.3.0",
+        description="Multi-tenant agent platform: agents, tools, skills, runs, evaluation",
         lifespan=lifespan,
         docs_url=None,  # disable Swagger UI
         redoc_url=None,  # disable stock Redoc; Scalar served at /docs below
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
 
     app.include_router(runs.router, prefix=settings.api_prefix)
     app.include_router(agents.router, prefix=settings.api_prefix)
+    app.include_router(capability.router, prefix=settings.api_prefix)
     app.include_router(tools.router, prefix=settings.api_prefix)
     app.include_router(skills.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)

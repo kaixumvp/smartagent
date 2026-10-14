@@ -5,13 +5,13 @@ from fastapi import Depends, Request
 from smartagent.adapters.pgvector_memory import VectorMemoryStore
 from smartagent.config import Settings, get_settings
 from smartagent.iam.permission_manager import PermissionManager
-from src.llm.cost import CachingGateway
-from src.llm.embedder import Embedder, HashEmbedder, LiteLLMEmbedder
-from src.llm.litellm_gateway import LiteLLMGateway
-from src.memory.consolidator import Consolidator
-from src.memory.manager import MemoryManager
-from src.memory.working import WorkingBrain
-from src.tools.registry import ToolRegistry, build_default_registry
+from ouroboros.llm.cost import CachingGateway
+from ouroboros.llm.embedder import Embedder, HashEmbedder, LiteLLMEmbedder
+from ouroboros.llm.litellm_gateway import LiteLLMGateway
+from ouroboros.memory.consolidator import Consolidator
+from ouroboros.memory.manager import MemoryManager
+from ouroboros.memory.working import WorkingBrain
+from ouroboros.tools.registry import ToolRegistry, build_default_registry
 
 
 @lru_cache

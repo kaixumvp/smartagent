@@ -1,4 +1,4 @@
-from src.ports import (
+from ouroboros.ports import (
     JudgeVerdict,
     MemoryEntry,
     PermissionContext,

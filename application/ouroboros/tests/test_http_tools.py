@@ -3,9 +3,9 @@
 import httpx
 import pytest
 
-from src.tools.builtin.http import HttpTool
-from src.tools.http_openapi import HttpOpenApiTool
-from src.tools.mcp import McpClient, McpTool
+from ouroboros.tools.builtin.http import HttpTool
+from ouroboros.tools.http_openapi import HttpOpenApiTool
+from ouroboros.tools.mcp import McpClient, McpTool
 
 
 class _FakeResponse:

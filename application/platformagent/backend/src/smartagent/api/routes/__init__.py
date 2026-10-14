@@ -1,6 +1,7 @@
 from smartagent.api.routes import (
     agents,
     auth,
+    capability,
     cost,
     evaluations,
     experiments,
@@ -18,6 +19,7 @@ from smartagent.api.routes import (
 __all__ = [
     "agents",
     "auth",
+    "capability",
     "cost",
     "evaluations",
     "experiments",

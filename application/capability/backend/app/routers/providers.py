@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..manifest import manifest_from_mcp_tool
-from ..mcp_client import list_remote_tools
+from ..mcp_auth import decrypt_auth_config, encrypt_auth_config, reject_secret_query_params, validate_auth_config
+from ..mcp_client import describe_mcp_error, list_remote_tools
 from ..models import Provider, Tool
-from ..schemas import ProviderCreate, ProviderOut, SyncResult
+from ..schemas import ProviderCreate, ProviderOut, ProviderUpdate, SyncResult
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
@@ -23,9 +24,19 @@ def _get_provider_or_404(db: Session, provider_id: uuid.UUID) -> Provider:
 
 @router.post("", response_model=ProviderOut, status_code=201)
 def create_provider(payload: ProviderCreate, db: Session = Depends(get_db)):
+    try:
+        reject_secret_query_params(payload.endpoint)
+        auth_config = validate_auth_config(payload.auth_type, payload.auth_config)
+        encrypted_config = encrypt_auth_config(auth_config)
+    except ValueError as exc:
+        status_code = 503 if "MCP_AUTH_ENCRYPTION_KEY" in str(exc) else 422
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+
     provider = Provider(
         name=payload.name,
         endpoint=payload.endpoint,
+        auth_type=payload.auth_type,
+        auth_config_encrypted=encrypted_config,
         credential_ref=payload.credential_ref,
         status="offline",
     )
@@ -45,18 +56,59 @@ def get_provider(provider_id: uuid.UUID, db: Session = Depends(get_db)):
     return _get_provider_or_404(db, provider_id)
 
 
+@router.put("/{provider_id}", response_model=ProviderOut)
+def update_provider(
+    provider_id: uuid.UUID,
+    payload: ProviderUpdate,
+    db: Session = Depends(get_db),
+):
+    provider = _get_provider_or_404(db, provider_id)
+    data = payload.model_dump(exclude_unset=True)
+    endpoint = data.get("endpoint", provider.endpoint)
+    auth_type = data.get("auth_type", provider.auth_type)
+    try:
+        reject_secret_query_params(endpoint)
+        if "auth_type" in data or "auth_config" in data:
+            old_config = (
+                decrypt_auth_config(provider.auth_config_encrypted)
+                if auth_type == provider.auth_type
+                else {}
+            )
+            old_config.update(data.get("auth_config") or {})
+            auth_config = validate_auth_config(auth_type, old_config)
+            provider.auth_config_encrypted = encrypt_auth_config(auth_config)
+            provider.auth_type = auth_type
+    except ValueError as exc:
+        status_code = 503 if "MCP_AUTH_ENCRYPTION_KEY" in str(exc) else 422
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+
+    if "name" in data:
+        provider.name = data["name"]
+    provider.endpoint = endpoint
+    provider.status = "offline"
+    db.commit()
+    db.refresh(provider)
+    return provider
+
+
 @router.post("/{provider_id}/sync", response_model=SyncResult)
 def sync_provider(provider_id: uuid.UUID, db: Session = Depends(get_db)):
     provider = _get_provider_or_404(db, provider_id)
 
     # 同步 endpoint 是 def（线程池运行），此处无事件循环，用 asyncio.run 连接 MCP
     try:
-        remote_tools = asyncio.run(list_remote_tools(provider.endpoint, provider.credential_ref))
+        auth_config = decrypt_auth_config(provider.auth_config_encrypted)
+        remote_tools = asyncio.run(
+            list_remote_tools(provider.endpoint, provider.auth_type, auth_config)
+        )
     except Exception as exc:  # noqa: BLE001  连接/超时/协议错误统一视为 offline
         provider.status = "offline"
         provider.last_sync_at = datetime.now(timezone.utc)
         db.commit()
-        raise HTTPException(status_code=502, detail=f"MCP 连接失败: {exc}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"MCP 连接失败: {describe_mcp_error(exc)}",
+        ) from exc
 
     now = datetime.now(timezone.utc)
     remote_names: set[str] = set()
@@ -112,6 +164,10 @@ def sync_provider(provider_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.delete("/{provider_id}", status_code=204)
 def delete_provider(provider_id: uuid.UUID, db: Session = Depends(get_db)):
     provider = _get_provider_or_404(db, provider_id)
+    db.query(Tool).filter(
+        Tool.provider_id == provider.id,
+        Tool.source == "mcp",
+    ).delete(synchronize_session=False)
     db.delete(provider)
     db.commit()
     return None

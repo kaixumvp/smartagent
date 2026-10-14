@@ -6,7 +6,7 @@ from smartagent.api.schemas import MemoryEntryOut, MemoryRecallRequest
 from smartagent.api.security import get_current_user
 from smartagent.db.session import get_db
 from smartagent.iam.permission_manager import Principal
-from src.memory.manager import MemoryManager
+from ouroboros.memory.manager import MemoryManager
 
 router = APIRouter(prefix="/memory", tags=["memory"])
 

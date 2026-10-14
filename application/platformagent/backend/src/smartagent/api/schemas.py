@@ -59,6 +59,7 @@ class RunCreateRequest(BaseModel):
     input: str
     stream: bool = False
     user_id: str | None = None
+    conversation_id: str | None = Field(default=None, max_length=128)
 
 
 class StepOut(BaseModel):
@@ -85,10 +86,16 @@ class PendingApprovalOut(BaseModel):
 class RunOut(BaseModel):
     run_id: str
     agent_id: str
+    input: str
+    conversation_id: str | None = None
     status: str
     result: str | None = None
+    error: str | None = None
     steps: list[StepOut] = Field(default_factory=list)
     usage: UsageOut = Field(default_factory=UsageOut)
+    # Cost attribution landed in V1.1 (platform 0.3.0); earlier runs report 0.
+    cost: float = 0.0
+    model: str | None = None
     pending_approvals: list[PendingApprovalOut] = Field(default_factory=list)
     created_at: datetime | None = None
     finished_at: datetime | None = None
@@ -105,6 +112,10 @@ class AgentCreateRequest(BaseModel):
     name: str
     version: str = "1"
     config: dict = Field(default_factory=dict)
+
+
+class AgentUpdateRequest(BaseModel):
+    config: dict
 
 
 class AgentOut(BaseModel):

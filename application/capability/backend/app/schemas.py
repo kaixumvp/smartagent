@@ -47,6 +47,7 @@ class ToolOut(BaseModel):
     id: uuid.UUID
     source: str
     provider_id: Optional[uuid.UUID]
+    api_service_id: Optional[uuid.UUID] = None
     remote_tool_name: Optional[str]
     display_name: str
     description: str
@@ -61,7 +62,16 @@ class ToolOut(BaseModel):
 class ProviderCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     endpoint: str = Field(..., min_length=1, max_length=2048)
+    auth_type: str = "none"
+    auth_config: dict[str, Any] = Field(default_factory=dict)
     credential_ref: Optional[str] = Field(default=None, max_length=255)
+
+
+class ProviderUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    endpoint: Optional[str] = Field(default=None, min_length=1, max_length=2048)
+    auth_type: Optional[str] = None
+    auth_config: Optional[dict[str, Any]] = None
 
 
 class ProviderOut(BaseModel):
@@ -70,7 +80,8 @@ class ProviderOut(BaseModel):
     id: uuid.UUID
     name: str
     endpoint: str
-    credential_ref: Optional[str]
+    auth_type: str = "none"
+    has_authentication: bool = False
     status: str
     last_sync_at: Optional[datetime]
     created_at: datetime
@@ -81,3 +92,60 @@ class SyncResult(BaseModel):
     synced: int
     missing: int
     provider_status: str
+
+
+class ToolTestRequest(BaseModel):
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+
+class ApiServiceCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    base_url: str = Field(..., min_length=1, max_length=2048)
+    auth_type: str = "none"
+    auth_config: dict[str, Any] = Field(default_factory=dict)
+    allow_private_network: bool = False
+    request_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    enabled: bool = True
+
+
+class ApiServiceUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    base_url: Optional[str] = Field(default=None, min_length=1, max_length=2048)
+    auth_type: Optional[str] = None
+    auth_config: Optional[dict[str, Any]] = None
+    allow_private_network: Optional[bool] = None
+    request_timeout_seconds: Optional[int] = Field(default=None, ge=1, le=120)
+    enabled: Optional[bool] = None
+
+
+class ApiServiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    base_url: str
+    auth_type: str
+    has_authentication: bool
+    allow_private_network: bool
+    request_timeout_seconds: int
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ApiToolCreate(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=255)
+    description: str = ""
+    lifecycle_state: LifecycleState = LifecycleState.draft
+    version: str = "1.0.0"
+    tags: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    input_schema: dict[str, Any] = Field(default_factory=lambda: {"type": "object", "properties": {}})
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+    enabled: bool = True
+    api_service_id: uuid.UUID
+    method: str = Field(..., pattern=r"^(GET|POST|PUT|PATCH|DELETE)$")
+    path: str = Field(..., min_length=1, max_length=2048)
+    query_template: dict[str, Any] = Field(default_factory=dict)
+    header_template: dict[str, Any] = Field(default_factory=dict)
+    body_template: Any = None

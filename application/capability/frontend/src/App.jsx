@@ -5,6 +5,7 @@ import ToolCatalog from './pages/ToolCatalog'
 import ToolEditor from './pages/ToolEditor'
 import Providers from './pages/Providers'
 import ProviderDetail from './pages/ProviderDetail'
+import ApiServices from './pages/ApiServices'
 
 const { Header, Content } = Layout
 
@@ -23,6 +24,7 @@ export default function App() {
           style={{ flex: 1, minWidth: 0 }}
           items={[
             { key: '/', icon: <AppstoreOutlined />, label: 'Tool Catalog' },
+            { key: '/api-services', icon: <ApiOutlined />, label: 'API Services' },
             { key: '/providers', icon: <ApiOutlined />, label: 'MCP Providers' },
           ]}
           onClick={(e) => navigate(e.key)}
@@ -33,6 +35,7 @@ export default function App() {
           <Route path="/" element={<ToolCatalog />} />
           <Route path="/new" element={<ToolEditor />} />
           <Route path="/edit/:id" element={<ToolEditor />} />
+          <Route path="/api-services" element={<ApiServices />} />
           <Route path="/providers" element={<Providers />} />
           <Route path="/providers/:id" element={<ProviderDetail />} />
         </Routes>

@@ -1,7 +1,7 @@
 import pytest
 
-from src.llm.base import LLMResponse, Usage
-from src.llm.replay import ReplayGateway, RecordingGateway, dump_recording, load_recording
+from ouroboros.llm.base import LLMResponse, Usage
+from ouroboros.llm.replay import ReplayGateway, RecordingGateway, dump_recording, load_recording
 
 
 class Scripted:

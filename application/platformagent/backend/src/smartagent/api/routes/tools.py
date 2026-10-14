@@ -10,7 +10,7 @@ from smartagent.api.security import get_current_user, require_permission
 from smartagent.db.models import Tool
 from smartagent.db.session import get_db
 from smartagent.iam.permission_manager import Principal
-from src.tools.registry import ToolRegistry
+from ouroboros.tools.registry import ToolRegistry
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 

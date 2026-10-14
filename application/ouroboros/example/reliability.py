@@ -9,13 +9,13 @@
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
-from src.core.nodes.execute import run_execute
-from src.core.resilience import CircuitBreaker, RetryPolicy, run_with_retry
-from src.plugins.registry import PluginRegistry
-from src.ports import PluginManifest
-from src.skills.agent_skill import AgentSkill
-from src.tools.base import BaseTool, ToolResult
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeConfig, RuntimeDeps
+from ouroboros.core.nodes.execute import run_execute
+from ouroboros.core.resilience import CircuitBreaker, RetryPolicy, run_with_retry
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import PluginManifest
+from ouroboros.skills.agent_skill import AgentSkill
+from ouroboros.tools.base import BaseTool, ToolResult
 
 from _shared import ScriptedLLM, finish, plan, tool_call
 
@@ -86,7 +86,7 @@ async def timeout_in_agent() -> None:
     class SlowLLM:
         async def chat(self, messages, model=None, tools=None):
             await asyncio.sleep(0.2)
-            from src.llm.base import LLMResponse, Usage
+            from ouroboros.llm.base import LLMResponse, Usage
             return LLMResponse(content="", usage=Usage())
 
     definition = AgentDefinition(

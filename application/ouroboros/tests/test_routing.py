@@ -1,7 +1,7 @@
 import pytest
 
-from src.llm.base import LLMResponse, Usage
-from src.llm.routing import FallbackLLMGateway, FaultTolerantGateway
+from ouroboros.llm.base import LLMResponse, Usage
+from ouroboros.llm.routing import FallbackLLMGateway, FaultTolerantGateway
 
 
 class FailingGateway:

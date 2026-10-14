@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from src.plugins.base import InvokeContext, PluginManifest
-from src.skills.function_skill import FunctionSkill
+from ouroboros.plugins.base import InvokeContext, PluginManifest
+from ouroboros.skills.function_skill import FunctionSkill
 
 
 @pytest.mark.asyncio

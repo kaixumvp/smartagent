@@ -4,7 +4,7 @@ import warnings
 def test_sse_shim_serialize_and_factories():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        from src.events.sse import SSEEvent, run_completed, run_started
+        from ouroboros.events.sse import SSEEvent, run_completed, run_started
 
     e = SSEEvent(event="run.started", data={"run_id": "r1", "status": "running"})
     assert e.serialize() == 'event: run.started\ndata: {"run_id": "r1", "status": "running"}\n\n'

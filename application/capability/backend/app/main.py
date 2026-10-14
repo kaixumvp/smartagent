@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import Base, engine
 from . import models  # noqa: F401  注册模型
-from .routers import providers, tools
+from .routers import api_services, api_tools, internal, providers, tools
 
 
 @asynccontextmanager
@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Capability Registry", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Capability Registry", version="0.3.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +27,9 @@ app.add_middleware(
 
 app.include_router(tools.router)
 app.include_router(providers.router)
+app.include_router(api_services.router)
+app.include_router(api_tools.router)
+app.include_router(internal.router)
 
 
 @app.get("/health")

@@ -9,10 +9,10 @@
 
 import asyncio
 
-from src import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
-from src.plugins.registry import PluginRegistry
-from src.ports import InvokeContext, PluginManifest
-from src.tools.base import BaseTool, ToolResult
+from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
+from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import InvokeContext, PluginManifest
+from ouroboros.tools.base import BaseTool, ToolResult
 
 from _shared import ScriptedLLM, finish, plan, tool_call
 
