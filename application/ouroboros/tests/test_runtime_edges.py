@@ -54,12 +54,6 @@ async def test_circuit_breaker_opens_and_fails_run():
         def manifest(self):
             return PluginManifest(name="f", kind="tool")
 
-        async def setup(self, c):
-            pass
-
-        async def teardown(self):
-            pass
-
         async def invoke(self, ctx, **kw):
             raise RuntimeError("boom")
 
@@ -89,12 +83,6 @@ async def test_execute_propagates_trace_id_to_invoke_context():
         @property
         def manifest(self):
             return PluginManifest(name="cap", kind="tool")
-
-        async def setup(self, c):
-            pass
-
-        async def teardown(self):
-            pass
 
         async def invoke(self, ctx, **kw):
             captured["trace_id"] = ctx.trace_id

@@ -37,17 +37,13 @@ from ouroboros.observability.trace import default_tracer
 from ouroboros.plugins.registry import PluginRegistry
 from ouroboros.ports import (
     Checkpointer,
-    Embedder,
     EventSink,
-    FlowRunner,
     Knowledge,
     LLMGateway,
     LongTermMemory,
     Metrics,
     PermissionChecker,
     PermissionContext,
-    SubagentRunner,
-    WorkingMemory,
 )
 from ouroboros.security import Redactor, default_redactor
 
@@ -108,15 +104,11 @@ class RuntimeDeps:
     """Port implementations injected by the host. Only `llm` is required."""
 
     llm: LLMGateway
-    embedder: Embedder | None = None
     permission_checker: PermissionChecker | None = None
     permission_context: PermissionContext | None = None
-    working_memory: WorkingMemory | None = None
     long_term_memory: LongTermMemory | None = None
     knowledge: Knowledge | None = None
     event_sink: EventSink | None = None
-    subagent_runner: SubagentRunner | None = None
-    flow_runner: FlowRunner | None = None
     checkpointer: Checkpointer | None = None
     db: Any = None  # transparent handle passed through to LongTermMemory/Knowledge ports
     id_gen: Callable[[str], str] | None = None

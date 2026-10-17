@@ -39,12 +39,6 @@ class Skill(ABC):
     def body(self) -> dict:
         return self._body
 
-    async def setup(self, config: dict) -> None:
-        return None
-
-    async def teardown(self) -> None:
-        return None
-
     @abstractmethod
     async def invoke(self, ctx: InvokeContext, **kw: Any) -> str: ...
 

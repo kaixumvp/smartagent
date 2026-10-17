@@ -71,12 +71,6 @@ async def test_runtime_retries_transient_plugin_failure():
         def manifest(self):
             return PluginManifest(name="flaky", kind="tool")
 
-        async def setup(self, config):
-            return None
-
-        async def teardown(self):
-            return None
-
         async def invoke(self, ctx, **kw):
             self.calls += 1
             if self.calls < 3:

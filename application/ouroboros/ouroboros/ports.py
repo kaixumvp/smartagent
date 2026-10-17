@@ -99,9 +99,7 @@ class Plugin(Protocol):
     kind: str
     manifest: PluginManifest
 
-    async def setup(self, config: dict) -> None: ...
     async def invoke(self, ctx: InvokeContext, **kw: Any) -> Any: ...
-    async def teardown(self) -> None: ...
 
 
 # --------------------------------------------------------------------------- permission

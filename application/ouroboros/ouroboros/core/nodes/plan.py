@@ -2,7 +2,7 @@ import json
 import logging
 
 from ouroboros.core.state import AgentState, PlanStep
-from ouroboros.llm.base import LLMGateway
+from ouroboros.ports import LLMGateway
 
 logger = logging.getLogger(__name__)
 
