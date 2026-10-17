@@ -96,6 +96,9 @@ class SyncResult(BaseModel):
 
 class ToolTestRequest(BaseModel):
     arguments: dict[str, Any] = Field(default_factory=dict)
+    context: dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: Optional[str] = Field(default=None, max_length=255)
+    correlation_id: Optional[str] = Field(default=None, max_length=255)
 
 
 class ApiServiceCreate(BaseModel):
@@ -126,6 +129,9 @@ class ApiServiceOut(BaseModel):
     base_url: str
     auth_type: str
     has_authentication: bool
+    # 非敏感认证字段（header_name / token_url / client_id / scope 等）与密钥形态诊断；
+    # 任何密钥明文都不会出现在这里
+    auth_config_summary: dict[str, Any] = Field(default_factory=dict)
     allow_private_network: bool
     request_timeout_seconds: int
     enabled: bool
@@ -149,3 +155,34 @@ class ApiToolCreate(BaseModel):
     query_template: dict[str, Any] = Field(default_factory=dict)
     header_template: dict[str, Any] = Field(default_factory=dict)
     body_template: Any = None
+
+
+class WorkflowCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-zA-Z][a-zA-Z0-9_-]*$")
+    display_name: str = Field(..., min_length=1, max_length=255)
+    description: str = ""
+    definition: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowDraftUpdate(BaseModel):
+    definition: dict[str, Any]
+    revision: int = Field(..., ge=1)
+
+
+class WorkflowRunRequest(BaseModel):
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    context: dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: Optional[str] = Field(default=None, max_length=255)
+    correlation_id: Optional[str] = Field(default=None, max_length=255)
+
+
+class InteractionSubmit(BaseModel):
+    response: dict[str, Any] = Field(default_factory=dict)
+    comment: Optional[str] = Field(default=None, max_length=4000)
+    revision: int = Field(..., ge=1)
+
+
+class InteractionDecision(BaseModel):
+    decision: str = Field(..., pattern=r"^(approve|reject|return)$")
+    comment: Optional[str] = Field(default=None, max_length=4000)
+    revision: int = Field(..., ge=1)

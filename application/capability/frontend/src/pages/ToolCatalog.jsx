@@ -45,7 +45,9 @@ export default function ToolCatalog() {
         ? testApiTool(testingTool.id, arguments_)
         : testTool(testingTool.id, arguments_)))
     } catch (e) {
-      setTestError(e?.response?.data?.detail || 'Tool 调用失败')
+      const detail = e?.response?.data?.detail
+      const status = e?.response?.status
+      setTestError(detail ? `${detail}（HTTP ${status}）` : 'Tool 调用失败')
     } finally {
       setTestLoading(false)
     }
@@ -73,6 +75,15 @@ export default function ToolCatalog() {
       key: 'display_name',
       width: 180,
       ellipsis: true,
+    },
+    {
+      title: 'MCP 名称',
+      key: 'mcp_name',
+      width: 160,
+      ellipsis: true,
+      render: (_, tool) => tool.source === 'mcp'
+        ? tool.manifest?.provider?.provider_name || '—'
+        : '—',
     },
     {
       title: '来源',
@@ -171,7 +182,7 @@ export default function ToolCatalog() {
         dataSource={data}
         loading={loading}
         tableLayout="fixed"
-        scroll={{ x: 1010 }}
+        scroll={{ x: 1170 }}
       />
 
       <Modal
@@ -220,7 +231,9 @@ export default function ToolCatalog() {
             <Alert
               type={testResult.isError ? 'error' : 'success'}
               showIcon
-              message={testResult.isError ? 'MCP Tool 返回执行错误' : '调用完成'}
+              message={testResult.isError
+                ? (testingTool?.source === 'api' ? 'API 返回执行错误' : 'MCP Tool 返回执行错误')
+                : '调用完成'}
               style={{ marginTop: 16 }}
             />
             <pre

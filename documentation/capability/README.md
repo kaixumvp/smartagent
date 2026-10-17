@@ -8,6 +8,7 @@ API/MCP Tool 描述并代理执行；不共享 Python 包或数据库。
 - [产品章程](./product-charter.md)
 - [系统架构](./system-architecture.md)
 - [版本路线图](./version-roadmap.md)
+- [Workflow 设计（规划）](./workflow-design.md)
 - [v0.1.0 Tool Registry](./version/v0.1.0-tool-registry.md)
 - [v0.2.0 MCP Provider](./version/v0.2.0-mcp-provider.md)
 - [v0.5.0 Discovery & Permission（规划）](./version/v0.5.0-discovery-permission.md)

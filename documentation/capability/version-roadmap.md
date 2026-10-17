@@ -23,6 +23,7 @@
 | v0.2.0 | MCP Provider & Sync | ✅ Delivered |
 | v0.3.0 | API Tools & Runtime Integration | ✅ Delivered (current) |
 | v0.5.0 | Discovery & Permission | ⏳ Planned |
+| v0.6.0 | Visual Workflow Builder & Deterministic Execution | ⏳ Proposed |
 | v1.0.0 | Enterprise Tool Registry | 🎯 Target |
 
 ---
@@ -45,6 +46,10 @@ v0.3
 v0.5
  │
  │ Discovery + Permission
+ ▼
+v0.6
+ │
+ │ Visual Workflows
  ▼
 v1.0
  │
@@ -247,6 +252,17 @@ git tag v1.0.0
 - [ ] Permission
 - [ ] Search
 
+## v0.6
+
+- [ ] Versioned Workflow definitions and publication validation
+- [ ] Visual DAG editor with Tool/API nodes and condition branches
+- [ ] Declarative pre/post logic and bounded execution trace
+- [ ] Expose published Workflow as a standard PlatformAgent Tool
+- [ ] Durable execution jobs with pause/resume for structured human input and approval
+- [ ] Interaction Inbox with submit/approve/reject/return and explicit timeout paths
+
+详细范围与边界见[Workflow 设计](./workflow-design.md)。v0.6.0 是建议的路线图拆分，实施前应按 v0.5 权限基线评估调整。
+
 ## v1.0
 
 - [ ] Dashboard
@@ -342,11 +358,11 @@ main
 | Version | Feature |
 |----------|---------|
 | v2.0 | Skill Registry |
-| v2.1 | Workflow Designer |
+| v2.1 | （原始长期设想；Workflow 已建议提前至 v0.6.0） |
 | v2.5 | Skill Manifest |
 | v3.0 | Vector / Semantic (Intent) Discovery |
 | v3.5 | RBAC |
 | v4.0 | Multi-Tenant |
 | v5.0 | Capability Marketplace |
 
-> v1.x 只关注 Tool Registry；v2 开始进入 Skill 与 Workflow，不破坏现有数据模型。
+> 此表是初始产品愿景中的远期占位，并非已承诺版本计划；近期 Workflow 范围以 v0.6.0 提案和[Workflow 设计](./workflow-design.md)为准。

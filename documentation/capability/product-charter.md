@@ -43,8 +43,9 @@ v1 只聚焦 **Tool Registry**。
 - Agent Runtime
 - Workflow 执行
 
-当前 v0.3.0 仍不负责 Agent Runtime 或 Workflow 编排；但 Registry 后端已经负责按已配置的 API/MCP manifest
-代理工具调用。授权决策仍由 Platform Runtime/IAM 执行，Registry 不提供用户 RBAC。
+当前 v0.3.0 尚未实现 Workflow 编排；Registry 后端已负责按已配置的 API/MCP manifest
+代理工具调用。固定业务 Workflow 是拟新增的 Capability 执行能力（见 [Workflow 设计](./workflow-design.md)），
+它不会成为 Agent Runtime，也不会由 LLM 动态规划流程。授权决策仍由 Platform Runtime/IAM 执行，Registry 当前不提供用户 RBAC。
 
 > 权限边界：仅指「权限元数据管理」——Registry 只存储/返回 `permission_group` 等元数据，**不执行鉴权**，鉴权在 Runtime 侧完成。这与「不包含 RBAC」一致。
 

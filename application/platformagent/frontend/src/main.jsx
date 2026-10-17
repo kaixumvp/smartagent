@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
-  Activity, ArrowUpRight, Bot, Check, ChevronDown, CircleDollarSign,
+  Activity, ArrowUpRight, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign,
   Clock3, Command, Database, Gauge, KeyRound, LayoutDashboard,
   LogOut, MessageCircle, Play, Plus, RefreshCw, Search, Send, Server,
   Globe2, ShieldCheck, Sparkles, Terminal, Trash2, UserRound, Wrench, X, Zap,
@@ -9,6 +11,9 @@ import {
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/v1';
+const MD_VIEW_KEY = 'smartagent_md_view';
+// 原文模式即改造前的表现（CSS white-space: pre-wrap 原样回显），格式化模式交给 react-markdown。
+const MD_MODES = { formatted: 'formatted', raw: 'raw' };
 
 const demoAgents = [
   { id: 'agent_support', name: '客服协作员', version: 'v1.4', status: 'active', model: 'deepseek-chat', runs: 1284, success: 96, accent: 'coral' },
@@ -75,10 +80,22 @@ function App() {
   const [agentChatInput, setAgentChatInput] = useState('');
   const [agentChatMessages, setAgentChatMessages] = useState([]);
   const [agentChatBusy, setAgentChatBusy] = useState(false);
+  const [mdMode, setMdMode] = useState(() => (
+    localStorage.getItem(MD_VIEW_KEY) === MD_MODES.raw ? MD_MODES.raw : MD_MODES.formatted
+  ));
   const [agentSaving, setAgentSaving] = useState(false);
   const [agentDeleting, setAgentDeleting] = useState(false);
   const [deletingRunId, setDeletingRunId] = useState('');
   const [selectedRun, setSelectedRun] = useState(null);
+
+  useEffect(() => { localStorage.setItem(MD_VIEW_KEY, mdMode); }, [mdMode]);
+
+  // 逐条覆盖只存本会话状态：message.mdView 为空表示跟随全局 mdMode。
+  function setMessageMdView(messageId, mdView) {
+    setAgentChatMessages((messages) => messages.map((message) => (
+      message.id === messageId ? { ...message, mdView } : message
+    )));
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -137,8 +154,8 @@ function App() {
         .filter((run) => run.conversation_id === conversationId)
         .reverse()
         .flatMap((run) => [
-          { role: 'user', content: run.input },
-          ...(run.result ? [{ role: 'assistant', content: run.result, run }] : []),
+          { id: crypto.randomUUID(), role: 'user', content: run.input },
+          ...(run.result ? [{ id: crypto.randomUUID(), role: 'assistant', content: run.result, run }] : []),
         ]));
     } catch (error) {
       setNotice(`加载 Agent 运行记录失败：${error.message}`);
@@ -261,7 +278,7 @@ function App() {
     event?.preventDefault();
     const input = agentChatInput.trim();
     if (!input || !agentDetail || agentChatBusy) return;
-    setAgentChatMessages((messages) => [...messages, { role: 'user', content: input }]);
+    setAgentChatMessages((messages) => [...messages, { id: crypto.randomUUID(), role: 'user', content: input }]);
     setAgentChatInput('');
     setAgentChatBusy(true);
     try {
@@ -270,6 +287,7 @@ function App() {
         body: JSON.stringify({ input, stream: false, conversation_id: agentConversationId }),
       });
       setAgentChatMessages((messages) => [...messages, {
+        id: crypto.randomUUID(),
         role: 'assistant',
         content: result.result || (result.status === 'awaiting_human' ? '运行正在等待人工审批。' : 'Agent 没有返回文本结果。'),
         run: result,
@@ -288,7 +306,7 @@ function App() {
       setSelectedRun(result);
       setNotice(result.status === 'awaiting_human' ? '运行需要人工审批，详情已显示在对话中' : '试运行已完成');
     } catch (error) {
-      setAgentChatMessages((messages) => [...messages, { role: 'error', content: error.message }]);
+      setAgentChatMessages((messages) => [...messages, { id: crypto.randomUUID(), role: 'error', content: error.message }]);
       setNotice(`试运行失败：${error.message}`);
     } finally {
       setAgentChatBusy(false);
@@ -429,7 +447,7 @@ function App() {
                   {loading ? '执行中' : '开始测试'}
                 </button>
               </div>
-              {overviewRun && <RunResultPanel run={overviewRun} onClose={() => setOverviewRun(null)} className="overview-run-result" />}
+              {overviewRun && <RunResultPanel run={overviewRun} mdMode={mdMode} onClose={() => setOverviewRun(null)} className="overview-run-result" />}
             </div>
           </section>
         </>}
@@ -608,6 +626,9 @@ function App() {
             deletingRunId={deletingRunId}
             selectedRun={selectedRun}
             setChatInput={setAgentChatInput}
+            mdMode={mdMode}
+            onSetMdMode={setMdMode}
+            onSetMessageMdView={setMessageMdView}
             onLoadProviderTools={loadCapabilityTools}
             onClose={() => setAgentDetail(null)}
             onUnbind={unbindAgentPlugin}
@@ -871,6 +892,31 @@ function AgentPage({ agents, onSelect, onCreate }) {
   </section>;
 }
 
+// 逐条覆盖与全局一致时等同于「跟随全局」，避免全局切换后残留无意义的覆盖标记。
+function resolveMdMode(message, globalMode) {
+  return message.mdView && message.mdView !== globalMode ? message.mdView : globalMode;
+}
+
+function isMdOverridden(message, globalMode) {
+  return Boolean(message.mdView) && message.mdView !== globalMode;
+}
+
+// react-markdown v9+ 会把 AST node 一并塞进自定义组件的 props，必须解构掉，
+// 否则 React 会对 <a> 报 "does not recognize the `node` prop on a DOM element"。
+function MarkdownLink({ node, ...props }) {
+  return <a {...props} target="_blank" rel="noreferrer noopener" />;
+}
+
+// 原文模式直接返回字符串，沿用外层容器既有的 white-space: pre-wrap 原样回显。
+function MarkdownText({ content, mode }) {
+  if (mode !== MD_MODES.formatted) return content;
+  // react-markdown 默认跳过内联原始 HTML（不引 rehype-raw），模型输出里的
+  // <script> 等不会被注入，因此无需 dangerouslySetInnerHTML。
+  return <div className="md-body">
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: MarkdownLink }}>{content}</ReactMarkdown>
+  </div>;
+}
+
 function getAgentPlugins(config) {
   if (Array.isArray(config?.plugins)) return config.plugins;
   return (config?.tools || []).map((ref) => ({ type: 'tool', ref }));
@@ -902,15 +948,49 @@ function pluginLabel(plugin, tools, providers, providerTools, apiTools) {
   return { icon: <Sparkles size={15} />, title: ref.replace(/^skill:/, ''), detail: 'Skill' };
 }
 
+const MCP_PROVIDER_PAGE_SIZE = 6;
+const MCP_TOOL_PAGE_SIZE = 10;
+
+// 只保留首尾页 + 当前页附近的页码，中间用省略号折叠，避免页码条过长。
+function pagerWindow(page, pageCount) {
+  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, index) => index + 1);
+  const visible = [...new Set([1, pageCount, page, page - 1, page + 1])]
+    .filter((item) => item >= 1 && item <= pageCount)
+    .sort((a, b) => a - b);
+  return visible.flatMap((item, index) => (index > 0 && item - visible[index - 1] > 1 ? ['…', item] : [item]));
+}
+
+function Pager({ page, pageCount, total, unit = '项', onChange }) {
+  if (pageCount <= 1) return null;
+  return <nav className="picker-pager" aria-label="分页">
+    <button type="button" className="pager-step" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="上一页"><ChevronLeft size={13} /></button>
+    {pagerWindow(page, pageCount).map((item, index) => item === '…'
+      ? <span className="pager-gap" key={`gap-${index}`}>…</span>
+      : <button
+        type="button"
+        key={item}
+        className={`pager-page ${item === page ? 'active' : ''}`}
+        aria-current={item === page ? 'page' : undefined}
+        onClick={() => onChange(item)}
+      >{item}</button>)}
+    <button type="button" className="pager-step" disabled={page >= pageCount} onClick={() => onChange(page + 1)} aria-label="下一页"><ChevronRight size={13} /></button>
+    <span className="pager-total">共 {total} {unit} · 第 {page}/{pageCount} 页</span>
+  </nav>;
+}
+
 function AgentDetailDialog({
   agent, tools, providers, providerTools, apiTools, runs, messages, chatInput, chatBusy,
-  saving, deleting, deletingRunId, selectedRun, setChatInput, onClose, onUnbind,
+  saving, deleting, deletingRunId, selectedRun, setChatInput, mdMode, onClose, onUnbind,
   onDelete, onDeleteRun, onSend, onSelectRun, onAddPlugins, onLoadProviderTools,
+  onSetMdMode, onSetMessageMdView,
 }) {
   const chatMessagesRef = useRef(null);
   const [showCapabilityPicker, setShowCapabilityPicker] = useState(false);
   const [capabilityTab, setCapabilityTab] = useState('tools');
   const [capabilitySearch, setCapabilitySearch] = useState('');
+  const [expandedMcpProviders, setExpandedMcpProviders] = useState({});
+  const [mcpPage, setMcpPage] = useState(1);
+  const [mcpToolPages, setMcpToolPages] = useState({});
   const [pendingPlugins, setPendingPlugins] = useState([]);
   const [loadingCapabilityTools, setLoadingCapabilityTools] = useState(false);
   const [capabilityLoadError, setCapabilityLoadError] = useState('');
@@ -919,11 +999,18 @@ function AgentDetailDialog({
     const messagesElement = chatMessagesRef.current;
     if (messagesElement) messagesElement.scrollTop = messagesElement.scrollHeight;
   }, [messages, chatBusy]);
+  // 搜索词或 Tab 变化后结果集会变，回到第一页避免停留在越界页码。
+  useEffect(() => {
+    setMcpPage(1);
+    setMcpToolPages({});
+  }, [capabilitySearch, capabilityTab]);
 
   const openCapabilityPicker = async () => {
     setPendingPlugins([]);
     setCapabilitySearch('');
     setCapabilityLoadError('');
+    setMcpPage(1);
+    setMcpToolPages({});
     setShowCapabilityPicker(true);
     if (providers.length === 0) return;
     setLoadingCapabilityTools(true);
@@ -974,6 +1061,9 @@ function AgentDetailDialog({
     ));
     return { ...provider, providerToolList, matchingTools, matchesProvider };
   }).filter((provider) => provider.matchesProvider || provider.matchingTools.length > 0);
+  const mcpPageCount = Math.max(1, Math.ceil(mcpProviders.length / MCP_PROVIDER_PAGE_SIZE));
+  const safeMcpPage = Math.min(mcpPage, mcpPageCount);
+  const pagedMcpProviders = mcpProviders.slice((safeMcpPage - 1) * MCP_PROVIDER_PAGE_SIZE, safeMcpPage * MCP_PROVIDER_PAGE_SIZE);
   const filteredApiTools = apiTools.filter((tool) => (
     !normalizedSearch
     || tool.name?.toLocaleLowerCase().includes(normalizedSearch)
@@ -1032,17 +1122,35 @@ function AgentDetailDialog({
           <button className="agent-delete-btn" onClick={onDelete} disabled={deleting}>{deleting ? <RefreshCw className="spin" size={15} /> : <Trash2 size={15} />}删除 Agent（保留历史记录）</button>
         </div>
         <div className="agent-detail-right">
-          <div className="agent-chat-heading"><div><span className="section-kicker">PLAYGROUND</span><h3><MessageCircle size={17} />试运行与对话</h3></div><span className="live-badge"><span />SESSION</span></div>
+          <div className="agent-chat-heading"><div><span className="section-kicker">PLAYGROUND</span><h3><MessageCircle size={17} />试运行与对话</h3></div><div className="agent-chat-heading-actions"><div className="md-mode-switch" role="group" aria-label="Markdown 显示方式"><button type="button" aria-pressed={mdMode === MD_MODES.formatted} className={mdMode === MD_MODES.formatted ? 'active' : ''} onClick={() => onSetMdMode(MD_MODES.formatted)}>格式化</button><button type="button" aria-pressed={mdMode === MD_MODES.raw} className={mdMode === MD_MODES.raw ? 'active' : ''} onClick={() => onSetMdMode(MD_MODES.raw)}>原文</button></div><span className="live-badge"><span />SESSION</span></div></div>
           <div className="agent-chat-messages" ref={chatMessagesRef}>
             {messages.length === 0 && <div className="agent-chat-empty"><div className="empty-orbit"><Bot size={24} /></div><strong>开始与 {agent.name} 对话</strong><span>试运行会使用当前绑定的 Tools、MCP 和模型配置。</span></div>}
-            {messages.map((message, index) => <div className={`agent-chat-message ${message.role}`} key={`${message.role}-${index}`}>
-              <span className="agent-message-role">{message.role === 'user' ? '你' : message.role === 'error' ? '运行错误' : agent.name}</span>
-              <div>{message.content}</div>
-              {message.run && <button className="run-result-link" onClick={() => onSelectRun(message.run)}><Activity size={13} />查看步骤 · {message.run.status}</button>}
-            </div>)}
+            {messages.map((message) => {
+              // 用户输入与错误信息不解析 Markdown：里面的 *、_ 不应被当成语法，
+              // 因此既不渲染格式化视图，也不提供逐条切换。
+              const isAssistant = message.role === 'assistant';
+              const mode = resolveMdMode(message, mdMode);
+              const overridden = isMdOverridden(message, mdMode);
+              return <div className={`agent-chat-message ${message.role} ${isAssistant && mode === MD_MODES.formatted ? 'is-md' : ''}`} key={message.id}>
+                <div className="agent-message-head">
+                  <span className="agent-message-role">{message.role === 'user' ? '你' : message.role === 'error' ? '运行错误' : agent.name}</span>
+                  {isAssistant && <button
+                    type="button"
+                    className={`md-toggle-mini ${overridden ? 'is-overridden' : ''}`}
+                    title={overridden ? '本条已单独设置，点击恢复跟随全局' : '仅切换本条消息的显示方式'}
+                    onClick={() => onSetMessageMdView(
+                      message.id,
+                      overridden ? undefined : (mode === MD_MODES.formatted ? MD_MODES.raw : MD_MODES.formatted),
+                    )}
+                  >{overridden ? '↺ 跟随全局' : (mode === MD_MODES.formatted ? '原文' : '格式化')}</button>}
+                </div>
+                <div><MarkdownText content={message.content} mode={mode} /></div>
+                {message.run && <button className="run-result-link" onClick={() => onSelectRun(message.run)}><Activity size={13} />查看步骤 · {message.run.status}</button>}
+              </div>;
+            })}
             {chatBusy && <div className="agent-chat-pending"><RefreshCw className="spin" size={15} />Agent 正在运行…</div>}
           </div>
-          {selectedRun && <RunResultPanel run={selectedRun} onClose={() => onSelectRun(null)} />}
+          {selectedRun && <RunResultPanel run={selectedRun} mdMode={mdMode} onClose={() => onSelectRun(null)} />}
           <form className="agent-chat-form" onSubmit={onSend}>
             <textarea value={chatInput} onChange={(event) => setChatInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); onSend(event); } }} placeholder="输入消息，试运行或继续对话…" rows={3} disabled={chatBusy} />
             <div><span>Enter 发送 · Shift+Enter 换行</span><button className="primary-btn" type="submit" disabled={chatBusy || !chatInput.trim()}><Send size={15} />发送</button></div>
@@ -1083,36 +1191,62 @@ function AgentDetailDialog({
             ? <div className="capability-picker-loading"><RefreshCw className="spin" size={17} />正在加载 MCP 工具…</div>
             : mcpProviders.length === 0
               ? <p className="agent-detail-empty">{providers.length === 0 ? '暂无可用 MCP Provider，请先在 Capability Registry 配置并同步服务。' : '没有匹配的 MCP 服务或工具。'}</p>
-              : mcpProviders.map((provider) => {
+              : <>
+                {pagedMcpProviders.map((provider) => {
                 const providerBound = plugins.some((plugin) => plugin.type === 'capability_provider' && plugin.ref === provider.id);
                 const providerChecked = providerBound || isPending('capability_provider', provider.id);
                 const matchingToolCount = provider.matchesProvider ? provider.providerToolList.length : provider.matchingTools.length;
+                const expanded = expandedMcpProviders[provider.id] ?? Boolean(normalizedSearch && !provider.matchesProvider);
+                const toolsListId = `mcp-tools-${provider.id}`;
+                const toolPageCount = Math.max(1, Math.ceil(provider.matchingTools.length / MCP_TOOL_PAGE_SIZE));
+                const toolPage = Math.min(mcpToolPages[provider.id] || 1, toolPageCount);
+                const pagedTools = provider.matchingTools.slice((toolPage - 1) * MCP_TOOL_PAGE_SIZE, toolPage * MCP_TOOL_PAGE_SIZE);
                 return <section className="mcp-picker-group" key={provider.id}>
-                  <header className="mcp-picker-provider">
-                    <div><strong>{provider.name}</strong><small>{provider.auth_type || 'MCP'} · {provider.status} · {provider.providerToolList.length} 个工具</small></div>
+                  <header className={`mcp-picker-provider ${expanded ? 'expanded' : ''}`}>
+                    <button
+                      type="button"
+                      className="mcp-picker-toggle"
+                      aria-expanded={expanded}
+                      aria-controls={expanded ? toolsListId : undefined}
+                      onClick={() => setExpandedMcpProviders((current) => ({ ...current, [provider.id]: !expanded }))}
+                    >
+                      <ChevronDown className={`mcp-picker-chevron ${expanded ? 'expanded' : ''}`} size={15} />
+                      <span><strong>{provider.name}</strong><small>{provider.auth_type || 'MCP'} · {provider.status} · {provider.providerToolList.length} 个工具</small></span>
+                    </button>
                     <label className="mcp-provider-select">
                       <input type="checkbox" checked={providerChecked} disabled={providerBound || saving} onChange={(event) => togglePlugin({ type: 'capability_provider', ref: provider.id }, event.target.checked)} />
                       <span>{providerBound ? '已绑定全部' : '绑定全部'}</span>
                     </label>
                   </header>
-                  {provider.providerToolList.length === 0
-                    ? <p className="mcp-picker-empty">此 Provider 暂无可用工具。</p>
-                    : <div className="mcp-picker-tools">
-                      {provider.matchingTools.map((tool) => {
-                        const ref = `${provider.id}/${tool.id}`;
-                        const coveredByProvider = providerBound || isPending('capability_provider', provider.id);
-                        const alreadyBound = plugins.some((plugin) => plugin.type === 'capability_tool' && plugin.ref === ref);
-                        const checked = coveredByProvider || alreadyBound || isPending('capability_tool', ref);
-                        return <label className={`capability-option ${checked && !isPending('capability_tool', ref) ? 'is-bound' : ''}`} key={tool.id}>
-                          <input type="checkbox" checked={checked} disabled={coveredByProvider || alreadyBound || saving} onChange={(event) => togglePlugin({ type: 'capability_tool', ref }, event.target.checked)} />
-                          <span className="capability-option-copy"><strong>{tool.display_name || tool.name}</strong><small>{tool.description || tool.name}</small></span>
-                          {alreadyBound && !providerBound && <span className="capability-option-tag">已绑定</span>}
-                        </label>;
-                      })}
-                      {matchingToolCount === 0 && <p className="mcp-picker-empty">此服务下没有匹配的工具。</p>}
-                    </div>}
+                  {expanded && (provider.providerToolList.length === 0
+                    ? <p className="mcp-picker-empty" id={toolsListId}>此 Provider 暂无可用工具。</p>
+                    : <div className="mcp-picker-tools" id={toolsListId}>
+                      <div className="mcp-picker-tool-scroll">
+                        {pagedTools.map((tool) => {
+                          const ref = `${provider.id}/${tool.id}`;
+                          const coveredByProvider = providerBound || isPending('capability_provider', provider.id);
+                          const alreadyBound = plugins.some((plugin) => plugin.type === 'capability_tool' && plugin.ref === ref);
+                          const checked = coveredByProvider || alreadyBound || isPending('capability_tool', ref);
+                          return <label className={`capability-option ${checked && !isPending('capability_tool', ref) ? 'is-bound' : ''}`} key={tool.id}>
+                            <input type="checkbox" checked={checked} disabled={coveredByProvider || alreadyBound || saving} onChange={(event) => togglePlugin({ type: 'capability_tool', ref }, event.target.checked)} />
+                            <span className="capability-option-copy"><strong>{tool.display_name || tool.name}</strong><small>{tool.description || tool.name}</small></span>
+                            {alreadyBound && !providerBound && <span className="capability-option-tag">已绑定</span>}
+                          </label>;
+                        })}
+                        {matchingToolCount === 0 && <p className="mcp-picker-empty">此服务下没有匹配的工具。</p>}
+                      </div>
+                      <Pager
+                        page={toolPage}
+                        pageCount={toolPageCount}
+                        total={provider.matchingTools.length}
+                        unit="个工具"
+                        onChange={(next) => setMcpToolPages((current) => ({ ...current, [provider.id]: next }))}
+                      />
+                    </div>)}
                 </section>;
-              }))}
+              })}
+                <Pager page={safeMcpPage} pageCount={mcpPageCount} total={mcpProviders.length} unit="个 MCP 服务" onChange={setMcpPage} />
+              </>)}
           {capabilityTab === 'api' && (filteredApiTools.length === 0
             ? <p className="agent-detail-empty">{apiTools.length === 0 ? '暂无启用的 API Tool，请先在 Capability Registry 创建并启用。' : '没有匹配的 API Tool。'}</p>
             : filteredApiTools.map((tool) => {
@@ -1140,11 +1274,11 @@ function AgentDetailDialog({
   </>;
 }
 
-function RunResultPanel({ run, onClose, className = '' }) {
+function RunResultPanel({ run, mdMode = MD_MODES.formatted, onClose, className = '' }) {
   return <section className={`run-result-panel ${className}`}>
     <div className="run-result-heading"><div><span className="section-kicker">RUN RESULT</span><strong>{run.run_id}</strong></div><button className="icon-btn" onClick={onClose} aria-label="关闭运行详情"><X size={15} /></button></div>
     <div className="run-result-meta"><Status status={run.status} /><span>{run.model || '默认模型'}</span><span>${Number(run.cost || 0).toFixed(4)}</span><span>{run.usage?.total_tokens || 0} tokens</span></div>
-    {run.result && <div className="run-result-answer">{run.result}</div>}
+    {run.result && <div className={`run-result-answer ${mdMode === MD_MODES.formatted ? 'is-md' : ''}`}><MarkdownText content={run.result} mode={mdMode} /></div>}
     {run.error && <div className="agent-run-error">{run.error}</div>}
     <div className="run-result-steps"><strong>执行步骤 · {run.steps?.length || 0}</strong>
       {run.steps?.length ? run.steps.map((step) => <details key={`${run.run_id}-${step.seq}`}>

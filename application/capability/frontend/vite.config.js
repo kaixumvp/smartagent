@@ -6,11 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/tools': 'http://localhost:8000',
-      '/providers': 'http://localhost:8000',
-      '/api-services': 'http://localhost:8000',
-      '/api-tools': 'http://localhost:8000',
-      '/health': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
 })

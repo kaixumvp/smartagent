@@ -18,11 +18,19 @@ services:
       MCP_AUTH_ENCRYPTION_KEY: ${MCP_AUTH_ENCRYPTION_KEY:-}
       CAPABILITY_INTEGRATION_KEY: ${CAPABILITY_INTEGRATION_KEY:-}
       DATABASE_URL: postgresql+psycopg2://registry:registry@db:5432/registry
+      REDIS_URL: redis://redis:6379/0
     ports:
       # Host port shifted off 8000, which is where the business layer's uvicorn runs.
       - "8010:8000"
     depends_on:
       - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      # 6380 instead of 6379: the business layer's Redis owns 6379.
+      - "6380:6379"
 
   frontend:
     build: ./frontend

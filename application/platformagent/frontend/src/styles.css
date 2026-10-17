@@ -149,6 +149,48 @@ button { cursor: pointer; border: 0; color: inherit; }
 .run-result-steps summary { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; color: #665f55; font-size: 9px; }
 .run-result-steps pre { max-height: 100px; padding: 7px; overflow: auto; background: #f5f1ea; color: #514b43; font: 9px 'DM Mono'; white-space: pre-wrap; overflow-wrap: anywhere; }
 .run-result-steps > small { color: var(--muted); font-size: 9px; }
+
+/* Markdown 双视图：原文沿用既有的 white-space: pre-wrap，格式化交还给块级排版。 */
+.agent-chat-heading-actions { display: flex; align-items: center; gap: 9px; }
+.md-mode-switch { display: flex; gap: 3px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: #fbf8f3; }
+.md-mode-switch button { padding: 4px 8px; border-radius: 4px; background: transparent; color: #8d877e; font-size: 10px; }
+.md-mode-switch button.active { background: #fff5f0; color: #a75348; box-shadow: inset 0 0 0 1px #ead7cf; }
+.md-toggle-mini { flex: 0 0 auto; padding: 1px 6px; border: 1px solid var(--line); border-radius: 3px; background: #fffefa; color: #a09a90; font: 9px 'DM Mono', monospace; white-space: nowrap; }
+.md-toggle-mini:hover { border-color: #d9c3b8; color: #a75348; }
+.md-toggle-mini.is-overridden { border-color: #e8c4b8; background: #fff5f0; color: var(--coral); }
+.agent-message-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.agent-message-head .agent-message-role { margin-bottom: 0; }
+.agent-chat-message.is-md, .run-result-answer.is-md { white-space: normal; }
+/* 同一套规则要同时服务 12px 的对话气泡与 11px 的运行详情面板，因此用 em 相对排版。 */
+.md-body { display: flow-root; }
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body p { margin: 0 0 .7em; }
+.md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 { margin: 1.1em 0 .5em; font-weight: 600; line-height: 1.3; letter-spacing: -.2px; }
+.md-body h1 { font-size: 1.45em; }
+.md-body h2 { font-size: 1.28em; }
+.md-body h3 { font-size: 1.14em; }
+.md-body h4, .md-body h5, .md-body h6 { font-size: 1em; color: #514b43; }
+.md-body ul, .md-body ol { margin: 0 0 .7em; padding-left: 1.5em; }
+.md-body li { margin: .2em 0; }
+.md-body li > ul, .md-body li > ol { margin: .2em 0 0; }
+.md-body li input[type='checkbox'] { margin-right: .4em; accent-color: var(--coral); }
+/* remark-gfm 的任务列表项会同时产出圆点与复选框，去掉圆点避免重复的标记。 */
+.md-body .contains-task-list { padding-left: .2em; }
+.md-body .task-list-item { list-style: none; }
+.md-body a { color: var(--coral); text-decoration: underline; text-underline-offset: 2px; }
+.md-body strong { font-weight: 600; }
+.md-body code { padding: 1px 4px; border-radius: 3px; background: #f3eee6; color: #7c4a3e; font: .92em 'DM Mono', monospace; }
+.md-body pre { margin: 0 0 .7em; padding: 8px 9px; border: 1px solid var(--line); border-radius: 5px; background: #f7f3ec; overflow-x: auto; }
+.md-body pre code { padding: 0; background: transparent; color: #4c463e; white-space: pre; }
+.md-body blockquote { margin: 0 0 .7em; padding: .1em 0 .1em .8em; border-left: 2px solid #e2cfc4; color: var(--muted); }
+.md-body hr { margin: 1em 0; border: 0; border-top: 1px solid var(--line); }
+.md-body img { max-width: 100%; border-radius: 5px; }
+/* 窄气泡里让宽表格收敛到 100%，单元格靠继承的 overflow-wrap 折行而不是撑破容器。 */
+.md-body table { width: max-content; max-width: 100%; margin: 0 0 .7em; border-collapse: collapse; font-size: .94em; }
+.md-body th, .md-body td { padding: 4px 8px; border: 1px solid var(--line); text-align: left; }
+.md-body th { background: #f7f3ec; font-weight: 600; }
+.md-body del { color: var(--muted); }
 .capability-picker-backdrop { z-index: 30; }
 .capability-modal.modal-card { display: flex; flex-direction: column; width: min(720px, 100%); height: min(760px, 88vh); max-height: 88vh; padding: 0; overflow: hidden; }
 .capability-modal-header { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 20px 24px 15px; border-bottom: 1px solid var(--line); }
@@ -175,13 +217,36 @@ button { cursor: pointer; border: 0; color: inherit; }
 .capability-option-copy small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .capability-option-tag { flex: 0 0 auto; color: #999187; font-size: 9px; }
 .mcp-picker-group { overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: #fffefa; }
-.mcp-picker-provider { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 12px; border-bottom: 1px solid #eee8de; background: #fcfaf6; }
-.mcp-picker-provider > div { display: grid; gap: 4px; min-width: 0; }
-.mcp-picker-provider > div strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.mcp-picker-provider > div small { color: var(--muted); font-size: 9px; }
+.mcp-picker-provider { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; background: #fcfaf6; }
+.mcp-picker-provider.expanded { border-bottom: 1px solid #eee8de; }
+.mcp-picker-toggle { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; padding: 2px 0; background: transparent; text-align: left; }
+.mcp-picker-toggle > span { display: grid; gap: 4px; min-width: 0; }
+.mcp-picker-toggle strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-picker-toggle small { color: var(--muted); font-size: 9px; }
+.mcp-picker-chevron { flex: 0 0 auto; color: #928b80; transition: transform .16s ease; }
+.mcp-picker-chevron.expanded { transform: rotate(180deg); }
 .mcp-provider-select { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; color: #8b695d; font-size: 9px; cursor: pointer; }
 .mcp-picker-tools { display: grid; gap: 6px; padding: 8px; }
 .mcp-picker-tools .capability-option { padding: 8px 9px; }
+.mcp-picker-tool-scroll { display: grid; align-content: start; gap: 6px; max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+/* 分页条：列表内嵌的页码控件，沿用弹窗的小字号与描边风格。 */
+.picker-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 4px 0 2px; }
+.mcp-picker-tools .picker-pager { padding: 0; }
+.capability-modal-list > .picker-pager { justify-content: center; padding: 6px 0 2px; }
+.picker-pager button { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 7px; border: 1px solid var(--line); border-radius: 5px; background: #fffefa; color: #6f6b63; font: 10px 'DM Mono'; }
+.picker-pager button:hover:not(:disabled):not(.active) { border-color: #d4bbb1; color: var(--coral); }
+.picker-pager button:disabled { opacity: .45; cursor: not-allowed; }
+.picker-pager .pager-page.active { border-color: #d59d8d; background: #fff5f0; color: #a75348; font-weight: 600; }
+.picker-pager .pager-gap { padding: 0 1px; color: #aaa196; font: 10px 'DM Mono'; }
+.picker-pager .pager-total { margin-left: 4px; color: #aaa196; font-size: 9px; }
+/* 滚动条：细描边样式，长列表才有视觉提示。 */
+.capability-modal-list, .mcp-picker-tool-scroll, .capability-tool-list, .agent-run-list, .agent-chat-messages { scrollbar-width: thin; scrollbar-color: #ded6ca transparent; }
+.capability-modal-list::-webkit-scrollbar, .mcp-picker-tool-scroll::-webkit-scrollbar, .capability-tool-list::-webkit-scrollbar, .agent-run-list::-webkit-scrollbar, .agent-chat-messages::-webkit-scrollbar { width: 8px; height: 8px; }
+.capability-modal-list::-webkit-scrollbar-track, .mcp-picker-tool-scroll::-webkit-scrollbar-track, .capability-tool-list::-webkit-scrollbar-track, .agent-run-list::-webkit-scrollbar-track, .agent-chat-messages::-webkit-scrollbar-track { background: transparent; }
+.capability-modal-list::-webkit-scrollbar-thumb, .mcp-picker-tool-scroll::-webkit-scrollbar-thumb, .capability-tool-list::-webkit-scrollbar-thumb, .agent-run-list::-webkit-scrollbar-thumb, .agent-chat-messages::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 8px; background: #ded6ca; background-clip: content-box; }
+.capability-modal-list::-webkit-scrollbar-thumb:hover, .mcp-picker-tool-scroll::-webkit-scrollbar-thumb:hover { background: #c6bcae; background-clip: content-box; }
+/* 新建 Agent 弹窗里的 MCP 工具列表同样限高滚动。 */
+.modal-card .capability-tool-list { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; }
 .mcp-picker-empty { margin: 0; padding: 10px 12px; color: var(--muted); font-size: 10px; }
 .capability-picker-loading { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 100px; color: var(--muted); font-size: 11px; }
 .capability-modal-footer { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 24px; border-top: 1px solid var(--line); background: var(--paper); }
@@ -195,11 +260,14 @@ button { cursor: pointer; border: 0; color: inherit; }
   .agent-run-list { max-height: 23vh; }
   .agent-detail-right { flex: 1; min-height: 0; }
   .agent-chat-messages { min-height: 0; }
+  /* 窄屏优先保证 Markdown 切换开关可见，SESSION 徽标让位。 */
+  .agent-chat-heading-actions .live-badge { display: none; }
 }
 @media (max-width: 680px) {
   .capability-modal.modal-card { width: 100%; height: 92vh; max-height: 92vh; }
   .capability-modal-header, .capability-modal-controls { padding-right: 16px; padding-left: 16px; }
   .capability-modal-list { padding-right: 16px; padding-left: 16px; }
+  .mcp-picker-tool-scroll { max-height: 240px; }
   .capability-modal-footer { padding-right: 16px; padding-left: 16px; }
   .capability-load-error { margin-right: 16px; margin-left: 16px; }
 }

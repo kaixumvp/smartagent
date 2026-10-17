@@ -31,12 +31,26 @@ def _validate_base_url(base_url: str, allow_private_network: bool) -> None:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-def _encrypt_credentials(auth_type: str, auth_config: dict, old_config: dict | None = None) -> str | None:
+def _encrypt_credentials(
+    auth_type: str,
+    auth_config: dict,
+    allow_private_network: bool = False,
+    old_config: dict | None = None,
+) -> str | None:
     try:
         config = dict(old_config or {})
         config.update(auth_config)
-        validated = validate_auth_config(auth_type, config)
+        validated = validate_auth_config(auth_type, config, allow_private_network)
         return encrypt_auth_config(validated) if validated else None
+    except ValueError as exc:
+        status_code = 503 if "MCP_AUTH_ENCRYPTION_KEY" in str(exc) else 422
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+
+
+def _decrypt_stored_config(encrypted: str | None) -> dict:
+    """读取已存凭据；解密失败不能再冒成 500（与 _encrypt_credentials 保持同一套错误码）。"""
+    try:
+        return decrypt_auth_config(encrypted)
     except ValueError as exc:
         status_code = 503 if "MCP_AUTH_ENCRYPTION_KEY" in str(exc) else 422
         raise HTTPException(status_code=status_code, detail=str(exc)) from exc
@@ -47,7 +61,9 @@ def create_api_service(payload: ApiServiceCreate, db: Session = Depends(get_db))
     _validate_base_url(payload.base_url, payload.allow_private_network)
     if db.query(ApiService).filter(ApiService.name == payload.name).first():
         raise HTTPException(status_code=409, detail="API service name already exists")
-    encrypted = _encrypt_credentials(payload.auth_type, payload.auth_config)
+    encrypted = _encrypt_credentials(
+        payload.auth_type, payload.auth_config, payload.allow_private_network
+    )
     service = ApiService(
         name=payload.name,
         base_url=payload.base_url,
@@ -87,12 +103,12 @@ def update_api_service(
     auth_type = data.get("auth_type", service.auth_type)
     if "auth_type" in data or "auth_config" in data:
         old_config = (
-            decrypt_auth_config(service.auth_config_encrypted)
+            _decrypt_stored_config(service.auth_config_encrypted)
             if auth_type == service.auth_type
             else {}
         )
         service.auth_config_encrypted = _encrypt_credentials(
-            auth_type, data.get("auth_config") or {}, old_config
+            auth_type, data.get("auth_config") or {}, allow_private, old_config
         )
         service.auth_type = auth_type
     if "name" in data:

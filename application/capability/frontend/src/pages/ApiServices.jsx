@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Checkbox, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd'
+import { Alert, Button, Checkbox, Form, Input, InputNumber, Modal, Popconfirm, Popover, Select, Space, Table, Tag, message } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { createApiService, deleteApiService, listApiServices, updateApiService } from '../api'
 
@@ -13,6 +13,49 @@ const AUTH_TYPES = [
   { value: 'custom_query_params', label: '自定义 Query 参数' },
   { value: 'oauth2_client_credentials', label: 'OAuth 2.0 Client Credentials' },
 ]
+
+// 这些键不能预填进 JSON：要么是元信息，要么是 <redacted> 占位——
+// 一旦预填，用户顺手保存就会把占位符写成真实值。
+const NON_DRAFT_SUMMARY_KEYS = [
+  'auth_type', 'configured_secrets', 'token_hint', 'error', 'headers', 'query_params', 'secrets',
+]
+
+function buildAuthConfigDraft(summary) {
+  if (!summary) return ''
+  const draft = Object.fromEntries(
+    Object.entries(summary).filter(([key]) => !NON_DRAFT_SUMMARY_KEYS.includes(key)),
+  )
+  return Object.keys(draft).length ? JSON.stringify(draft, null, 2) : ''
+}
+
+/** 认证配置回显：非敏感字段 + 密钥形态诊断，永不显示密钥明文。 */
+function AuthSummary({ summary }) {
+  if (!summary || Object.keys(summary).length === 0) {
+    return <span style={{ color: '#8c8c8c' }}>未配置</span>
+  }
+  const configured = summary.configured_secrets || []
+  const hint = summary.token_hint
+  return (
+    <div style={{ maxWidth: 320, lineHeight: 1.7 }}>
+      {summary.error
+        ? <div style={{ color: '#cf1322' }}>{summary.error}</div>
+        : <div>已配置密钥字段：{configured.length ? configured.join('、') : '—'}</div>}
+      {hint && (
+        <div>
+          token：{hint.length} 字符 · {hint.is_jwt ? 'JWT' : '非 JWT'}
+          {hint.has_bearer_prefix ? ' · ⚠ 含 "Bearer " 前缀（保存时自动去除）' : ''}
+          {hint.expires_at ? ` · 到期 ${new Date(hint.expires_at).toLocaleString()}` : ''}
+        </div>
+      )}
+      {summary.token_endpoint && <div>自动获取：{summary.token_endpoint}</div>}
+      {summary.header_name && <div>header_name：{summary.header_name}</div>}
+      {summary.parameter_name && <div>parameter_name：{summary.parameter_name}</div>}
+      {summary.token_url && <div>token_url：{summary.token_url}</div>}
+      {summary.client_id && <div>client_id：{summary.client_id}</div>}
+      <div style={{ color: '#8c8c8c' }}>密钥明文不通过接口返回；表单里留空即保留现有值。</div>
+    </div>
+  )
+}
 
 export default function ApiServices() {
   const [services, setServices] = useState([])
@@ -41,7 +84,7 @@ export default function ApiServices() {
       name: service.name,
       base_url: service.base_url,
       auth_type: service.auth_type || 'none',
-      auth_config: '',
+      auth_config: buildAuthConfigDraft(service.auth_config_summary),
       allow_private_network: service.allow_private_network,
       request_timeout_seconds: service.request_timeout_seconds || 30,
       enabled: service.enabled,
@@ -66,6 +109,11 @@ export default function ApiServices() {
         return
       }
     }
+    // 从接口文档里复制整行 Authorization 是最常见的填错方式；后端也会兜底去除，这里先提示
+    if (typeof auth_config.token === 'string' && /^\s*bearer\s+/i.test(auth_config.token)) {
+      auth_config = { ...auth_config, token: auth_config.token.replace(/^\s*bearer\s+/i, '') }
+      message.info('token 已自动去除 "Bearer " 前缀，只保留 token 本身')
+    }
     const data = { ...values, auth_config }
     delete data.auth_config_text
     try {
@@ -88,9 +136,15 @@ export default function ApiServices() {
       key: 'auth_type',
       width: 180,
       render: (value, service) => (
-        <Tag color={value === 'none' ? 'default' : service.has_authentication ? 'blue' : 'orange'}>
-          {value === 'none' ? '无认证' : service.has_authentication ? value : `${value}（未配置）`}
-        </Tag>
+        <Popover
+          title="认证配置（不回显明文）"
+          content={<AuthSummary summary={service.auth_config_summary} />}
+          placement="right"
+        >
+          <Tag color={value === 'none' ? 'default' : service.has_authentication ? 'blue' : 'orange'}>
+            {value === 'none' ? '无认证' : service.has_authentication ? value : `${value}（未配置）`}
+          </Tag>
+        </Popover>
       ),
     },
     {
@@ -178,10 +232,44 @@ export default function ApiServices() {
           <Form.Item
             name="auth_config"
             label="认证配置（JSON）"
-            extra={editing?.has_authentication ? '留空保留现有密钥；变更认证方式时需填写新配置。' : '示例：Bearer {"token":"..."}；API Key Header {"header_name":"X-API-Key","api_key":"..."}。'}
+            extra={
+              editing?.has_authentication
+                ? '已预填非敏感字段；密钥留空即保留现有值，变更认证方式时需重新填写。'
+                : '示例：Bearer {"token":"..."}；API Key Header {"header_name":"X-API-Key","api_key":"..."}。'
+            }
           >
             <Input.TextArea rows={4} placeholder='{"token":"..."}' autoComplete="off" />
           </Form.Item>
+          {editing?.has_authentication && (
+            <Alert
+              type={editing?.auth_config_summary?.token_hint?.has_bearer_prefix ? 'warning' : 'info'}
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="当前存储的凭据（不回显明文）"
+              description={<AuthSummary summary={editing.auth_config_summary} />}
+            />
+          )}
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Bearer token 填写说明"
+            description={
+              <>
+                <div>
+                  <code>token</code> 只填 token 本身，<b>不要带 <code>Bearer </code> 前缀</b>（带了会自动去除），也
+                  不要带换行。
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  不想手工维护会过期的 token，可改为自动获取：
+                  <code>{' {"token_endpoint":"https://.../token","token_body":{"grant_type":"client_credentials","client_id":"$secret.client_id","client_secret":"$secret.client_secret"},"secrets":{"client_id":"...","client_secret":"..."}} '}</code>
+                  ，可选 <code>token_method</code>（GET/POST）、<code>token_content_type</code>（json/form）、
+                  <code>token_headers</code>、<code>token_response_path</code>（默认 access_token）、
+                  <code>token_expires_in_path</code>（默认 expires_in）。取到的 token 会缓存，过期自动重取。
+                </div>
+              </>
+            }
+          />
           <Form.Item name="request_timeout_seconds" label="请求超时（秒）" rules={[{ required: true }]}>
             <InputNumber min={1} max={120} style={{ width: '100%' }} />
           </Form.Item>

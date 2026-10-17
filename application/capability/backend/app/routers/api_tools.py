@@ -148,7 +148,8 @@ def test_api_tool(tool_id: uuid.UUID, payload: ToolTestRequest, db: Session = De
     except TimeoutError as exc:
         raise HTTPException(status_code=504, detail="API request timed out") from exc
     except ValueError as exc:
+        # 服务配置（Base URL、OAuth token_url）不合法，无法发起请求
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ApiToolCallError as exc:
-        status = 504 if "timed out" in str(exc).lower() else 502
-        raise HTTPException(status_code=status, detail=str(exc)) from exc
+        # 400 入参、422 Tool 定义、403 网络策略、502 远端、504 超时
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

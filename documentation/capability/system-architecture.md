@@ -25,8 +25,9 @@ FastAPI + React 服务，自己的 PostgreSQL 保存 Provider、API Service 和 
 - Metadata
 - Platform Runtime 内部 HTTP 集成
 
-当前尚未实现 Discovery/权限组授权；Registry 不负责 Agent 的规划、工作流和运行循环，Agent Runtime 位于
-PlatformAgent / Ouroboros。
+当前尚未实现 Discovery/权限组授权或 Workflow。Registry 不负责 Agent 的规划与通用运行循环，Agent Runtime 位于
+PlatformAgent / Ouroboros；固定、显式建模的业务 Workflow 可作为 Capability 的后续能力，由 Registry 后端执行，
+并以标准 Tool 暴露给 Agent。详见[Workflow 设计](./workflow-design.md)。
 
 ---
 
@@ -44,13 +45,13 @@ PlatformAgent / Ouroboros。
                           REST API
                                │
                 Capability Registry Service
-                ┌────────────┬────────────┬───────────────┐
-                │            │            │               │
-       Tool Service  Provider/API Service  Discovery   Sync Service
-                │            │            │               │
-                └────────────┴─────┬──────┴───────────────┘
-                                   │
-                              PostgreSQL
+                       ┌───────────────┬───────────────┬────────────┐
+                       │               │               │            │
+                 Tool Service   Provider/API Service  Sync Service  Workflow Service
+                       │               │               │            │（规划）
+                       └───────────────┴───────────────┴────────────┘
+                                                   │
+                                              PostgreSQL
 ```
 
 > 同步控制流（数据如何进入 Registry，与存储流分离）：
@@ -104,6 +105,7 @@ Platform Console ─► Platform API / Runtime
 - Metadata
 - Manifest
 - Discovery（规划中）
+- Workflow Definition/Version/Execution（规划中）
 - 服务端 API/MCP Tool 调用代理
 
 ---
@@ -134,13 +136,23 @@ Platform Console ─► Platform API / Runtime
 
 ---
 
+## Workflow Service / Executor（规划中）
+
+Capability 后端的 Workflow Service 管理有版本的 DAG 定义、静态校验、发布及运行记录；Executor 只执行已发布图，
+通过现有 MCP/API adapter 调用下游 Tool。Workflow 不替代 Agent Runtime，不使用 LLM 决定图的下一节点；
+对 Agent 以一个普通 Tool contract 暴露。
+
+---
+
 ## PostgreSQL
 
 保存：
 
 - Provider
 - Tool Registration
+- API Service
 - Manifest（JSONB）
+- Workflow definitions、immutable versions、runs/node runs（规划中）
 - （v0.5 计划）反规范化检索列（tags / keywords / permission_group）——**当前未实现**
 - 同步历史
 
@@ -218,8 +230,9 @@ Top K Tool
 
 # 5. Runtime 边界
 
-Registry 不包含 Agent Runtime 的循环、规划或授权逻辑；Agent Runtime 由 PlatformAgent 中的 Ouroboros 提供。
-Registry 负责保存 manifest，并按平台后端调用请求代理 API/MCP Tool 执行。
+Registry 不包含 Agent Runtime 的循环和规划；Agent Runtime 由 PlatformAgent 中的 Ouroboros 提供。
+Registry 负责保存 Tool manifest，并按平台后端调用请求代理 API/MCP Tool 执行。规划中的固定 Workflow 可在
+Capability 侧编排这些 Tools，其节点调度不由模型实时规划。
 
 正确流程：
 
@@ -247,6 +260,7 @@ Registry catalog 公开的数据包含：
 >
 > - `api`：Capability 根据已保存的 API Service 凭据与映射配置发起 HTTP 请求。
 > - `mcp`：Capability 根据 Provider 配置调用 MCP Server。
+> - `workflow`（规划）：Capability 执行已发布的固定 DAG，并将其作为单个 Tool 暴露给 Agent。
 >
 > `local`/builtin Tools 由 Platform Runtime 自身执行，不经 Capability Registry。
 
@@ -459,17 +473,18 @@ Registry 当前没有用户登录或 RBAC；管理 API 无用户鉴权，CORS �
 ```text
 Capability Registry
         │
-        ├──────── v1
-        │          Tool
+        ├──────── 当前 v0.3
+        │          Tool / MCP / API
         │
-        ├──────── v2
-        │          Skill
+        ├──────── 提案 v0.5
+        │          Discovery / Permission
         │
-        ├──────── v2.5
+        ├──────── 提案 v0.6
         │          Workflow
         │
-        └──────── v3
-                   Vector Discovery
+        └──────── 远期
+                   其他 Capability 类型
 ```
 
-保持 Tool 数据模型不变，Skill 作为新的 Capability 类型扩展。
+旧版远期版本号已不代表当前承诺。Workflow 是独立的版本化资源，通过 Tool-compatible manifest/调用接口暴露；
+不将 DAG definition 混入现有 `tools` 表。详细方案见[Workflow 设计](./workflow-design.md)。

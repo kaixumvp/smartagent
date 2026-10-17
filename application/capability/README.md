@@ -12,6 +12,8 @@
 >
 > ⚠️ 管理 API 无用户鉴权、CORS 为 `*`、`auto_create_tables` 默认开启。管理界面测试 API/MCP Tool 会真实调用远端，可能产生副作用。默认禁止 API Tool 访问非公网 HTTPS 地址；只有对可信目标才显式允许内网访问。Agent Runtime 集成使用独立的服务端共享密钥；不要将该密钥放进前端代码。
 
+> **Workflow 基础能力已实现于 Capability。** 支持版本化 DAG 草稿/发布、Tool/API/条件/转换节点、运行追踪、人工输入与审批暂停/恢复；前端提供画布编辑、连线配置和待办中心。发布后的 Workflow 通过 `/internal/tools` 作为标准 Tool 投影给 Platform Runtime。管理 API 仍沿用现有无用户鉴权边界；人机交互授权需在后续治理阶段补齐。设计见[Workflow 设计](../../documentation/capability/workflow-design.md)。
+
 配置 MCP 凭据前，需要在 Capability 项目根目录的 `.env` 中设置持久化密钥
 `MCP_AUTH_ENCRYPTION_KEY`。生成方法：
 
@@ -46,9 +48,9 @@ backend/          FastAPI 后端
   pyproject.toml  Poetry 依赖定义
   poetry.lock     锁定的后端依赖版本
   poetry.toml     项目内虚拟环境配置
-  app/            main / config / database / models / schemas / manifest / mcp_client / routers
-  app/routers/    tools.py（CRUD）· providers.py（CRUD + /sync）
-  alembic/        数据库迁移（0001 tools，0002 providers + MCP 列）
+  app/            main / config / database / models / schemas / manifest / mcp_client / workflow_engine
+  app/routers/    tools.py · providers.py · workflows.py · internal.py
+  alembic/        数据库迁移（0001–0005，含 Workflow 版本/运行/交互表）
 frontend/         React 前端
   src/pages/      ToolCatalog / ToolEditor / Providers / ProviderDetail
 mock-server/      真实 FastMCP server（3 个工具），用于验证同步
@@ -128,7 +130,7 @@ npm run dev
 | PUT | `/tools/{id}` | 更新 |
 | DELETE | `/tools/{id}` | 删除 |
 | POST | `/tools/{id}/test` | 用给定 JSON 参数真实调用远端 MCP Tool；仅支持已同步且未标记 `remote_missing` 的 MCP Tool，调用超时为 30 秒 |
-| POST/GET/PUT/DELETE | `/api-services` | 管理 API Base URL、认证方式、超时及私网访问策略；响应不包含凭据 |
+| POST/GET/PUT/DELETE | `/api-services` | 管理 API Base URL、认证方式、超时及私网访问策略；响应不包含凭据明文 |
 | POST | `/api-tools` | 创建 HTTP API Tool：服务、method/path、标准输入输出 Schema 与请求映射 |
 | PUT | `/api-tools/{id}` | 更新 API Tool 定义 |
 | POST | `/api-tools/{id}/test` | 对启用的 API Tool 真实发起 HTTP 请求 |
@@ -142,6 +144,13 @@ npm run dev
 | GET | `/internal/providers/{id}/tools` | Platform Runtime 专用的已启用 Tool 清单（需共享密钥） |
 | GET | `/internal/tools` | Platform Runtime 专用的启用 API/MCP Tool 清单，返回标准 Tool Schema（需共享密钥） |
 | POST | `/internal/tools/{id}/call` | Platform Runtime 专用的 MCP/API Tool 调用代理（需共享密钥） |
+| GET/POST/PUT | `/workflows`、`/workflows/{id}`、`/workflows/{id}/draft` | Workflow 列表/创建/详情/草稿保存 |
+| POST | `/workflows/{id}/validate`、`publish`、`test-runs` | 校验、发布不可变版本、运行草稿 |
+| GET | `/workflows/{id}/runs`、`/workflow-runs/{run_id}` | 查询运行状态及节点追踪 |
+| GET/POST | `/interactions`、`/interactions/{id}/submit`、`/interactions/{id}/decide` | 待办查询、提交表单、审批决定 |
+| GET | `/internal/workflows` | 已发布 Workflow manifests（需共享密钥） |
+| GET | `/internal/tools` | 同时列出启用的 MCP/API Tools 与已发布 Workflow |
+| POST | `/internal/tools/{id}/call` | 根据 Tool ID 调用 MCP/API Tool 或 Workflow（需共享密钥） |
 | GET | `/health` | 健康检查 |
 
 > `/sync` 是**同步请求内执行**（`asyncio.run`），失败返回 502；没有 job 表，也不记录同步历史。
@@ -157,7 +166,62 @@ Tool Catalog 中 MCP Tool 的“测试”操作会通过 Provider 的 Streamable
 4. Query/Header/Body 模板可用 `$input.city` 引用输入；Path 中 `{city}` 会从同名输入参数取值并做 URL 编码。固定值可直接填写。
 5. 将 Tool 状态设为 `active` 并启用后，在 Platform Agent 的能力选择器中添加该 API Tool。Agent Runtime 只会看到标准 Tool 名称、描述、JSON Schema 和结果；API 地址、认证凭据及请求映射保留在 Capability 后端。
 
+### 认证配置回显
+
+`/api-services` 的响应带 `auth_config_summary`，用于编辑时回显，**不含任何密钥明文**：
+
+- 非敏感字段原样返回：`header_name`、`parameter_name`、`username`、`token_url`、`token_endpoint`、`token_method`、`token_content_type`、`token_body`、`token_headers`、`token_response_path`、`token_expires_in_path`、`client_id`、`scope`、`audience`、`client_auth_method`。
+- 只有名字没有值：`headers` / `query_params` / `secrets` 的键，值统一为 `<redacted>`。
+- `configured_secrets`：`token` / `api_key` / `password` / `client_secret` / `secrets` 中哪些已配置。
+- `token_hint`：排查用形态信息——`length`、`has_bearer_prefix`、`is_jwt`、`expires_at`。
+- 解密失败时只回 `{"error": "..."}`，不会让列表接口报错。
+
+前端编辑对话框据此预填非敏感字段（**不会**把 `<redacted>` 预填进 JSON，避免误存占位符），并展示密钥是否已配置与 token 形态；表格里的认证标签可悬停查看同样信息。密钥字段留空即保留现有值。
+
 API 执行不跟随 HTTP 重定向、不使用环境代理，并限制请求体和响应体为 1 MiB。测试/运行会真实调用目标 API，可能产生副作用。
+
+API Tool 执行失败按来源分类返回，`detail` 始终是具体原因（`/api-tools/{id}/test` 与 `/internal/tools/{id}/call` 一致）：
+
+| 状态码 | 来源 | 典型 detail |
+|---|---|---|
+| 400 | 调用方入参不满足 Tool 契约 | `Required Tool input 'city' is missing`、`Required path argument 'id' is missing or is not scalar`、超出 1 MiB 限额 |
+| 422 | Tool / Service 存储定义拼不出合法请求 | `API Tool has no valid HTTP execution configuration`、`API Tool path must be a relative path...`、`API service is disabled` |
+| 403 | 目标地址被网络策略拒绝 | `API service resolves to a non-public address...` |
+| 502 | 远端服务或网络问题 | `API service returned HTTP 404`、`API request failed (ConnectError)`、响应超出 1 MiB |
+| 504 | 请求超时 | `API request timed out` |
+
+Service 的 Base URL / OAuth `token_url` 等存储配置不合法仍返回 503。
+
+### Bearer Token 认证
+
+`token` 只填 token 本身。**从接口文档复制整行 `Authorization: Bearer xxx` 进来时，`Bearer ` 前缀会在保存和注入两处自动剥离**（大小写不敏感）——所以存量数据里已经带了前缀的记录无需改数据即可恢复可用。`api_key_header` 的 `api_key` 若粘成 `X-API-Key: xxx` 同样会剥离。
+
+token 是 JWT 时会解析 `exp`（不验签，仅用于提示）：已过期或将在 60 秒内过期的 token 直接返回 **422**，`detail` 带上具体到期时间，而不是等远端返回 401 再笼统报 502；出站日志里也会附一行 token 剩余有效期（不含 token 本身）。远端返回 401/403 时，日志会额外提示排查方向（重复前缀 / 是否过期 / scope）。
+
+不想手工维护会过期的 token，可把 `auth_config` 从「手工 token」换成「自动获取」——只要提供 `token_endpoint` 即进入自动模式（此时 `token` 字段会被忽略）：
+
+```json
+{
+  "token_endpoint": "https://sso.example.com/oauth/token",
+  "token_method": "POST",
+  "token_content_type": "json",
+  "token_body": {"grant_type": "client_credentials", "client_id": "$secret.client_id", "client_secret": "$secret.client_secret"},
+  "token_headers": {"X-Tenant": "$secret.tenant"},
+  "token_response_path": "data.access_token",
+  "token_expires_in_path": "data.expires_in",
+  "secrets": {"client_id": "...", "client_secret": "...", "tenant": "..."}
+}
+```
+
+- `token_body` / `token_headers` 里的 `$secret.<name>` 引用 `secrets` 中的值；`secrets` 与其它字段一起 Fernet 加密存储，接口不会回显。
+- `token_response_path` / `token_expires_in_path` 支持点号取嵌套字段，默认 `access_token` / `expires_in`。
+- 取到的 token 缓存在 **Redis**，TTL = `expires_in` 减 30 秒（未返回 `expires_in` 时默认 300 秒；剩余有效期不足 10 秒则不缓存）。缓存键是各处配置 + `secrets` 摘要的 sha256，轮换密钥会自动换键。
+- `token_endpoint` 与 Base URL 受同一套网络策略约束：未开启私网访问时必须是 HTTPS。
+- 想改回手工 token，把 `token_endpoint` 传空串即可清除自动获取配置。
+
+Redis 由 `docker-compose.yml` 的 `redis` 服务提供（`redis:7-alpine`，host 端口 **6380**，避免与业务层的 6379 冲突），backend 通过 `REDIS_URL` 连接。**Redis 连不上不影响调用**：读取/写入失败只记一条 warning，然后照常去取新 token。`TOKEN_CACHE_ENABLED=false` 可整体关闭缓存。OAuth 2.0 `client_credentials` 与 bearer 自动获取共用这套缓存。
+
+`API_TOOL_HTTP_LOG`（默认 `true`）会把 API Tool 的出站请求/响应打进服务日志（`docker logs capability-backend-1`）：method、完整 URL、header、body、query、超时设置、响应状态/耗时/响应体（非 2xx 也会打远端返回体，便于排查）。凭据按 header / query 参数名自动脱敏（`Authorization: Bearer <redacted>`、`api_key=<redacted>`），body 与响应体各截断到 2000 字符；设为 `false` 可关闭。业务 logger 由 `app/main.py` 配置，httpx 自带的请求日志被压到 WARNING，避免它把 query 里的密钥原样打出来。
 
 创建/更新请求体示例：
 

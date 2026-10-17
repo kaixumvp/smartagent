@@ -10,7 +10,8 @@ documentation/
 ├── 版本规划.md                 项目版本轴总览
 ├── platformagent/              业务平台（后端 + Console）
 ├── ouroboros/                  Agent 框架
-└── capability/                 Capability Registry
+├── capability/                 Capability Registry
+└── solutions/                  面向具体业务场景的解决方案
 ```
 
 ## 总体项目文档
@@ -23,7 +24,11 @@ documentation/
 
 - [PlatformAgent 业务平台](./platformagent/README.md)：业务 API、数据与 IAM、运行装配、路线图及 0.4.0 知识图谱设计。
 - [Ouroboros Agent 框架](./ouroboros/README.md)：框架公开契约、使用入口、UML 与独立版本路线。
-- [Capability Registry](./capability/README.md)：Registry 的边界、架构、产品章程及版本路线。
+- [Capability Registry](./capability/README.md)：Registry 的边界、架构、产品章程、Workflow 设计及版本路线。
+
+## 解决方案文档
+
+- [解决方案](./solutions/README.md)：面向具体业务场景的落地方案，按场景分目录，含架构图、产品方案与技术方案。
 
 ## 归档与事实来源
 
