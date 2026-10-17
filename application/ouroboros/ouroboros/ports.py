@@ -272,11 +272,12 @@ class Metrics(Protocol):
 
 # --------------------------------------------------------------------------- checkpointer
 class Checkpointer(Protocol):
-    """Persists a run's state so it can be resumed (pause/human-in-the-loop or crash recovery).
+    """Persists a run's pre-execute state so a paused run can be resumed (human-in-the-loop).
 
-    The framework supplies the state dict; where it is stored is the host's concern
-    (Redis, Postgres, S3, …). ``ouroboros.core.checkpointer.InMemoryCheckpointer`` is the
-    zero-dependency default used in tests.
+    The framework checkpoints only right before each execute step; that snapshot lets
+    ``resume`` re-run the exact blocked step after approvals are granted. Where the state
+    dict is stored is the host's concern (Redis, Postgres, S3, …).
+    ``ouroboros.core.checkpointer.InMemoryCheckpointer`` is the zero-dependency default.
     """
 
     async def save(self, run_id: str, state: dict) -> None: ...

@@ -282,8 +282,8 @@ class AgentRuntime:
 
                     state[_NEXT] = self._next(node, state)
                     if node == "execute" and state.get("status") == "awaiting_human":
-                        # Pause: do NOT checkpoint the post-execute state. The last saved
-                        # snapshot (post-decide) is what a resume re-runs from.
+                        # Pause on the human gate. The pre-execute checkpoint (saved after the
+                        # preceding decide) is what a resume re-runs from.
                         pending = state.get("pending_approvals") or []
                         await self._emit(deps, run_awaiting_human(run_id, pending))
                         return RunResult(
@@ -292,7 +292,11 @@ class AgentRuntime:
                             token_usage=usage,
                             pending_approvals=pending,
                         )
-                    await self._checkpoint(deps, run_id, state)
+                    if node == "decide":
+                        # Only the pre-execute state needs persisting: it lets resume re-run the
+                        # exact blocked execute step, and it never contains tool output (which may
+                        # hold secrets). Checkpointing after execute/observe would write those.
+                        await self._checkpoint(deps, run_id, state)
 
             result = state.get("result")
             await self._emit(deps, run_completed(run_id, result, usage))

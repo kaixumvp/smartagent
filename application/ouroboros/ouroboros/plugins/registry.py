@@ -88,7 +88,3 @@ class PluginRegistry:
         if plugin is None:
             raise KeyError(f"unknown plugin: {key}")
         return await plugin.invoke(ctx, **kw)
-
-    async def run(self, name: str, **kw: Any) -> Any:
-        """Backward-compatible alias that invokes a plugin by its bare name."""
-        return await self.invoke(name, InvokeContext(), **kw)
