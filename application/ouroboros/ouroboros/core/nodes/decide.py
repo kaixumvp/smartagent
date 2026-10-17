@@ -1,7 +1,7 @@
 import json
 import logging
 
-from ouroboros.core.state import AgentState
+from ouroboros.core.state import FINISH, AgentState
 from ouroboros.ports import LLMGateway
 
 logger = logging.getLogger(__name__)
@@ -61,4 +61,4 @@ async def run_decide(
         }
 
     logger.debug("decide: finish")
-    return {"action": "__finish__", "result": resp.content or "", "token_usage": resp.usage.model_dump()}
+    return {"action": FINISH, "result": resp.content or "", "token_usage": resp.usage.model_dump()}

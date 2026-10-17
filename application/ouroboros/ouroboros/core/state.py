@@ -1,5 +1,8 @@
 from typing import TypedDict
 
+# Sentinel action returned by the Decide node when it produces a final answer (no tool call).
+FINISH = "__finish__"
+
 
 class PlanStep(TypedDict):
     id: int

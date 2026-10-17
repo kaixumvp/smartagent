@@ -23,6 +23,7 @@ from ouroboros.core.nodes import execute as execute_mod
 from ouroboros.core.nodes import observe as observe_mod
 from ouroboros.core.nodes import plan as plan_mod
 from ouroboros.core.resilience import CircuitBreaker, CircuitOpenError, RetryPolicy, run_with_retry
+from ouroboros.core.state import FINISH
 from ouroboros.events.events import (
     run_approved,
     run_awaiting_human,
@@ -374,7 +375,7 @@ class AgentRuntime:
         if node == "plan":
             return "decide"
         if node == "decide":
-            return None if state.get("action") == "__finish__" else "execute"
+            return None if state.get("action") == FINISH else "execute"
         if node == "execute":
             return None if state.get("status") == "awaiting_human" else "observe"
         if node == "observe":
@@ -401,27 +402,31 @@ class AgentRuntime:
             (e.similarity or 0.0) >= 0.5 or (e.confidence or 0.0) >= 0.5 for e in entries
         )
         if not sufficient and deps.knowledge is not None:
-            try:
-                docs = await deps.knowledge.search(task, top_k=5)
-                contexts = [{"content": d.content, "source": d.source or "knowledge"} for d in docs]
-                # Write the fallback back into long-term memory so the next recall is sufficient.
-                if deps.long_term_memory is not None:
-                    for d in docs:
-                        try:
-                            await deps.long_term_memory.add(
-                                deps.db,
-                                tenant_id=context.tenant_id,
-                                user_id=context.user_id,
-                                session_id=context.session_id,
-                                content=d.content,
-                                importance=0.3,
-                                confidence=0.5,
-                            )
-                        except Exception:  # noqa: BLE001 — write-back is best-effort
-                            pass
-            except Exception:  # noqa: BLE001
-                logger.warning("knowledge fallback failed", exc_info=True)
+            contexts = await self._recall_from_knowledge(deps, context, task)
+        return contexts
 
+    async def _recall_from_knowledge(self, deps: RuntimeDeps, context: RunContext, task: str) -> list[dict]:
+        """Search the Knowledge port and write the results back into long-term memory."""
+        try:
+            docs = await deps.knowledge.search(task, top_k=5)
+        except Exception:  # noqa: BLE001 — knowledge is best-effort
+            logger.warning("knowledge fallback failed", exc_info=True)
+            return []
+        contexts = [{"content": d.content, "source": d.source or "knowledge"} for d in docs]
+        if deps.long_term_memory is not None:
+            for d in docs:
+                try:
+                    await deps.long_term_memory.add(
+                        deps.db,
+                        tenant_id=context.tenant_id,
+                        user_id=context.user_id,
+                        session_id=context.session_id,
+                        content=d.content,
+                        importance=0.3,
+                        confidence=0.5,
+                    )
+                except Exception:  # noqa: BLE001 — write-back is best-effort
+                    pass
         return contexts
 
     def _merge_usage(self, usage: dict, update: dict) -> None:
