@@ -3,7 +3,6 @@ import logging
 
 from ouroboros.core.state import AgentState
 from ouroboros.ports import LLMGateway
-from ouroboros.security import TOOL_RESULT_GUARD, wrap_tool_result
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +25,6 @@ async def run_decide(
         messages.append({"role": "system", "content": f"Current plan:\n{plan_text}"})
 
     messages.extend(state.get("messages") or [])
-
-    last = state.get("last_tool_result")
-    if last:
-        # Basic prompt-injection defense: mark the tool output as untrusted external data.
-        messages.append({"role": "system", "content": TOOL_RESULT_GUARD})
-        messages.append({"role": "user", "content": f"Tool result:\n{wrap_tool_result(last)}"})
 
     resp = await llm.chat(messages=messages, model=model, tools=tool_schemas or None)
 

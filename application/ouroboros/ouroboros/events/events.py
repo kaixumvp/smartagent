@@ -65,10 +65,6 @@ def run_approved(run_id: str) -> RuntimeEvent:
     return RuntimeEvent(event="run.approved", run_id=run_id, data={"run_id": run_id, "status": "running"})
 
 
-def run_rejected(run_id: str) -> RuntimeEvent:
-    return RuntimeEvent(event="run.rejected", run_id=run_id, data={"run_id": run_id, "status": "canceled"})
-
-
 __all__ = [
     "RuntimeEvent",
     "run_started",
@@ -77,5 +73,4 @@ __all__ = [
     "run_failed",
     "run_awaiting_human",
     "run_approved",
-    "run_rejected",
 ]

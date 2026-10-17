@@ -4,10 +4,6 @@ from typing import Any
 from ouroboros.plugins.base import InvokeContext, PluginManifest
 from ouroboros.ports import FlowRunner, SubagentRunner
 
-# Backward-compatible aliases (the canonical names now live in ouroboros.ports).
-RunSubagent = SubagentRunner
-RunFlow = FlowRunner
-
 
 class Skill(ABC):
     """Base class for all skill forms. A Skill is a plugin with kind == "skill".
@@ -23,8 +19,8 @@ class Skill(ABC):
         self,
         manifest: PluginManifest,
         body: dict,
-        run_subagent: RunSubagent | None = None,
-        run_flow: RunFlow | None = None,
+        run_subagent: SubagentRunner | None = None,
+        run_flow: FlowRunner | None = None,
     ) -> None:
         self._manifest = manifest
         self._body = body or {}
@@ -47,8 +43,8 @@ def build_skill(
     type_: str,
     manifest: PluginManifest,
     body: dict,
-    run_subagent: RunSubagent | None = None,
-    run_flow: RunFlow | None = None,
+    run_subagent: SubagentRunner | None = None,
+    run_flow: FlowRunner | None = None,
 ) -> Skill:
     """Instantiate the concrete skill class for a given form."""
     from ouroboros.skills.agent_skill import AgentSkill

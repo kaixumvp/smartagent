@@ -1,6 +1,7 @@
 import logging
 
 from ouroboros.core.state import AgentState
+from ouroboros.security import wrap_tool_result
 
 logger = logging.getLogger(__name__)
 
@@ -14,14 +15,14 @@ async def run_observe(state: AgentState) -> dict:
         # V0.4: one tool message per parallel call, each linked by its tool_call_id.
         tool_call_ids = state.get("tool_call_ids") or []
         for i, result in enumerate(tool_results):
-            msg = {"role": "tool", "content": result}
+            msg = {"role": "tool", "content": wrap_tool_result(result)}
             if i < len(tool_call_ids):
                 msg["tool_call_id"] = tool_call_ids[i]
             messages.append(msg)
     else:
         last = state.get("last_tool_result")
         if last is not None:
-            msg = {"role": "tool", "content": last}
+            msg = {"role": "tool", "content": wrap_tool_result(last)}
             tool_call_id = state.get("tool_call_id")
             if tool_call_id:
                 msg["tool_call_id"] = tool_call_id

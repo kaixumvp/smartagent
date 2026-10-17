@@ -5,6 +5,7 @@ from ouroboros.core.nodes.decide import run_decide
 from ouroboros.core.nodes.execute import run_execute
 from ouroboros.core.nodes.observe import run_observe
 from ouroboros.llm.base import LLMResponse, ToolCall, Usage
+from ouroboros.security import wrap_tool_result
 
 
 @pytest.mark.asyncio
@@ -49,6 +50,6 @@ async def test_observe_appends_multiple_tool_messages():
     }
     result = await run_observe(state)
     assert result["messages"] == [
-        {"role": "tool", "content": "2", "tool_call_id": "c1"},
-        {"role": "tool", "content": "4", "tool_call_id": "c2"},
+        {"role": "tool", "content": wrap_tool_result("2"), "tool_call_id": "c1"},
+        {"role": "tool", "content": wrap_tool_result("4"), "tool_call_id": "c2"},
     ]

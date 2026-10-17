@@ -1,7 +1,8 @@
 from typing import Any
 
 from ouroboros.plugins.base import PluginManifest
-from ouroboros.skills.base import RunFlow, RunSubagent, Skill, build_skill
+from ouroboros.ports import FlowRunner, SubagentRunner
+from ouroboros.skills.base import Skill, build_skill
 
 
 class SkillManager:
@@ -13,8 +14,8 @@ class SkillManager:
 
     def __init__(
         self,
-        run_subagent: RunSubagent | None = None,
-        run_flow: RunFlow | None = None,
+        run_subagent: SubagentRunner | None = None,
+        run_flow: FlowRunner | None = None,
     ) -> None:
         self._run_subagent = run_subagent
         self._run_flow = run_flow
