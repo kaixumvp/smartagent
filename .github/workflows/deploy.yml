@@ -1,0 +1,261 @@
+name: Deploy SmartAgent
+
+on:
+  push:
+    branches:
+      - refactor/ouroboros-prune
+    paths:
+      - "application/capability/**"
+      - "application/platformagent/**"
+      - "application/ouroboros/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Which application to deploy
+        required: true
+        type: choice
+        options:
+          - all
+          - platformagent
+          - capability
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smartagent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect deployment targets
+        id: targets
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DEPLOY_TARGET: ${{ inputs.deploy_target }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          platform=false
+          capability=false
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            case "$DEPLOY_TARGET" in
+              all)
+                platform=true
+                capability=true
+                ;;
+              platformagent)
+                platform=true
+                ;;
+              capability)
+                capability=true
+                ;;
+              *)
+                echo "Unsupported deploy target: $DEPLOY_TARGET" >&2
+                exit 1
+                ;;
+            esac
+          else
+            if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+              changed_files="$(git show --format= --name-only "$CURRENT_SHA")"
+            else
+              changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")"
+            fi
+            printf '%s\n' "$changed_files"
+            if grep -Eq '^(application/platformagent/|application/ouroboros/|\.github/workflows/deploy\.yml$)' <<<"$changed_files"; then
+              platform=true
+            fi
+            if grep -Eq '^(application/capability/|\.github/workflows/deploy\.yml$)' <<<"$changed_files"; then
+              capability=true
+            fi
+          fi
+
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
+          echo "capability=$capability" >> "$GITHUB_OUTPUT"
+          echo "PlatformAgent deployment: $platform"
+          echo "Capability deployment: $capability"
+
+      - name: Build changed application images
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true'
+        shell: bash
+        env:
+          PLATFORM_CHANGED: ${{ steps.targets.outputs.platform }}
+          CAPABILITY_CHANGED: ${{ steps.targets.outputs.capability }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$PLATFORM_CHANGED" == "true" ]]; then
+            PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/platformagent/backend/docker-compose.yml \
+              build backend frontend
+            docker save "platformagent-backend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/platformagent-backend.tar.gz"
+            docker save "platformagent-frontend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/platformagent-frontend.tar.gz"
+            tar --exclude='platformagent/backend/.env' \
+              -czf "$RUNNER_TEMP/platformagent-source.tar.gz" \
+              -C application platformagent ouroboros
+          fi
+
+          if [[ "$CAPABILITY_CHANGED" == "true" ]]; then
+            CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/capability/docker-compose.yml \
+              build backend frontend
+            docker save "capability-backend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/capability-backend.tar.gz"
+            docker save "capability-frontend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/capability-frontend.tar.gz"
+            tar --exclude='capability/.env' \
+              -czf "$RUNNER_TEMP/capability-source.tar.gz" \
+              -C application capability
+          fi
+
+      - name: Configure SSH
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true'
+        shell: bash
+        env:
+          ALIYUN_SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_PRIVATE_KEY }}
+          ALIYUN_KNOWN_HOSTS: ${{ secrets.ALIYUN_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_SSH_PRIVATE_KEY"
+          test -n "$ALIYUN_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ALIYUN_SSH_PRIVATE_KEY" > "$HOME/.ssh/smartagent_deploy"
+          chmod 600 "$HOME/.ssh/smartagent_deploy"
+          printf '%s\n' "$ALIYUN_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload and deploy changed applications
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true'
+        timeout-minutes: 35
+        shell: bash
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_SSH_PORT: ${{ vars.ALIYUN_SSH_PORT }}
+          DEPLOY_PLATFORM: ${{ steps.targets.outputs.platform }}
+          DEPLOY_CAPABILITY: ${{ steps.targets.outputs.capability }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_HOST"
+          test -n "$ALIYUN_USER"
+          SSH_PORT="${ALIYUN_SSH_PORT:-22}"
+          SSH=(ssh -i "$HOME/.ssh/smartagent_deploy" -p "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
+          SCP=(scp -i "$HOME/.ssh/smartagent_deploy" -P "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
+          TARGET="${ALIYUN_USER}@${ALIYUN_HOST}"
+          PREFIX="smartagent-${GITHUB_SHA}"
+
+          "${SSH[@]}" "$TARGET" "mkdir -p /opt/platformagent /opt/capability"
+
+          if [[ "$DEPLOY_PLATFORM" == "true" ]]; then
+            echo "Uploading PlatformAgent source and images"
+            "${SCP[@]}" "$RUNNER_TEMP/platformagent-source.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-source.tar.gz"
+            "${SCP[@]}" "$RUNNER_TEMP/platformagent-backend.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-backend.tar.gz"
+            "${SCP[@]}" "$RUNNER_TEMP/platformagent-frontend.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-frontend.tar.gz"
+          fi
+
+          if [[ "$DEPLOY_CAPABILITY" == "true" ]]; then
+            echo "Uploading Capability source and images"
+            "${SCP[@]}" "$RUNNER_TEMP/capability-source.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-source.tar.gz"
+            "${SCP[@]}" "$RUNNER_TEMP/capability-backend.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-backend.tar.gz"
+            "${SCP[@]}" "$RUNNER_TEMP/capability-frontend.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-frontend.tar.gz"
+          fi
+
+          "${SSH[@]}" "$TARGET" "bash -s -- '$PREFIX' '$GITHUB_SHA' '$DEPLOY_PLATFORM' '$DEPLOY_CAPABILITY'" <<'REMOTE'
+          set -euo pipefail
+          prefix="$1"
+          image_tag="$2"
+          deploy_platform="$3"
+          deploy_capability="$4"
+          platform_dir="/opt/platformagent"
+          capability_dir="/opt/capability"
+          platform_compose="${platform_dir}/platformagent/backend/docker-compose.yml"
+          capability_compose="${capability_dir}/docker-compose.yml"
+
+          on_error() {
+            status=$?
+            echo "Deployment failed at line ${BASH_LINENO[0]} (exit ${status})" >&2
+            if [[ "$deploy_capability" == "true" && -f "$capability_compose" ]]; then
+              docker compose --project-directory "$capability_dir" --file "$capability_compose" ps -a >&2 || true
+            fi
+            if [[ "$deploy_platform" == "true" && -f "$platform_compose" ]]; then
+              docker compose --project-directory "${platform_dir}/platformagent/backend" --file "$platform_compose" ps -a >&2 || true
+            fi
+            exit "$status"
+          }
+          trap on_error ERR
+
+          docker network inspect capability-internal >/dev/null 2>&1 || docker network create capability-internal
+          docker network inspect public-gateway >/dev/null 2>&1 || docker network create public-gateway
+
+          if [[ "$deploy_capability" == "true" ]]; then
+            test -f "${capability_dir}/.env" || {
+              echo "Missing ${capability_dir}/.env" >&2
+              exit 1
+            }
+            grep -Eq '^POSTGRES_PASSWORD=.+$' "${capability_dir}/.env" || {
+              echo "Set POSTGRES_PASSWORD in ${capability_dir}/.env" >&2
+              exit 1
+            }
+            grep -Eq '^MCP_AUTH_ENCRYPTION_KEY=.+$' "${capability_dir}/.env" || {
+              echo "Set MCP_AUTH_ENCRYPTION_KEY in ${capability_dir}/.env" >&2
+              exit 1
+            }
+            tar -xzf "/tmp/${prefix}-capability-source.tar.gz" -C "$capability_dir" --strip-components=1
+            docker load -i "/tmp/${prefix}-capability-backend.tar.gz"
+            docker load -i "/tmp/${prefix}-capability-frontend.tar.gz"
+            CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "$capability_dir" \
+              --file "$capability_compose" \
+              up -d --remove-orphans
+            docker compose --project-directory "$capability_dir" --file "$capability_compose" ps
+          fi
+
+          if [[ "$deploy_platform" == "true" ]]; then
+            platform_env="${platform_dir}/platformagent/backend/.env"
+            test -f "$platform_env" || {
+              echo "Missing ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^PLATFORM_BIND_ADDRESS=(127\.0\.0\.1|0\.0\.0\.0)$' "$platform_env" || {
+              echo "Set PLATFORM_BIND_ADDRESS to 127.0.0.1 or 0.0.0.0 in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^POSTGRES_PASSWORD=.+$' "$platform_env" || {
+              echo "Set POSTGRES_PASSWORD in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^JWT_SECRET=.{32,}$' "$platform_env" || {
+              echo "Set a JWT_SECRET of at least 32 characters in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^BOOTSTRAP_ADMIN_PASSWORD=.+$' "$platform_env" || {
+              echo "Set BOOTSTRAP_ADMIN_PASSWORD in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^CAPABILITY_REGISTRY_URL=http://capability-backend:8000/?$' "$platform_env" || {
+              echo "Set CAPABILITY_REGISTRY_URL=http://capability-backend:8000 in ${platform_env}" >&2
+              exit 1
+            }
+            tar -xzf "/tmp/${prefix}-platform-source.tar.gz" -C "$platform_dir"
+            docker load -i "/tmp/${prefix}-platform-backend.tar.gz"
+            docker load -i "/tmp/${prefix}-platform-frontend.tar.gz"
+            PLATFORM_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "${platform_dir}/platformagent/backend" \
+              --file "$platform_compose" \
+              up -d --remove-orphans
+            docker compose --project-directory "${platform_dir}/platformagent/backend" --file "$platform_compose" ps
+          fi
+
+          rm -f /tmp/"${prefix}"-*.tar.gz
+          REMOTE

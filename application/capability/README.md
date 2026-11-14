@@ -60,8 +60,10 @@ mock-server/      真实 FastMCP server（3 个工具），用于验证同步
 ## 快速启动（Docker Compose）
 
 ```bash
-docker network inspect capability-internal *> $null
-if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
+foreach ($network in @("capability-internal", "public-gateway")) {
+  docker network inspect $network *> $null
+  if ($LASTEXITCODE -ne 0) { docker network create $network }
+}
 docker compose up --build
 ```
 
@@ -77,10 +79,11 @@ docker compose up --build
 
 ## 部署到阿里云 ECS（GitHub Actions 自动部署）
 
-仓库的 `.github/workflows/deploy-capability.yml` 会在推送到 `main` 后构建前后端镜像，
-通过 SSH 上传源码和镜像，并在 ECS 上执行 `docker compose up -d`。也可以从 GitHub
-Actions 页面手动运行。服务器需要 Linux、Docker Engine 和 Docker Compose v2；部署账号
-需要有 Docker 使用权限，并能写入 `/opt/capability`。
+仓库的统一工作流 `.github/workflows/deploy.yml` 会在推送到
+`refactor/ouroboros-prune` 后按改动构建并部署对应应用。首次部署可在 GitHub Actions
+运行 **Deploy SmartAgent** 并选择 `all`。服务器需要 Linux、Docker Engine 和 Docker
+Compose v2；部署账号需要有 Docker 使用权限，并能写入 `/opt/capability` 和
+`/opt/platformagent`。
 
 ### 1. 首次准备服务器
 
@@ -91,7 +94,6 @@ Actions 页面手动运行。服务器需要 Linux、Docker Engine 和 Docker Co
 首次部署前，在服务器创建 `/opt/capability/.env`（不要提交到 Git），至少包含：
 
 ```dotenv
-CAPABILITY_BIND_ADDRESS=127.0.0.1
 POSTGRES_PASSWORD=<随机生成的十六进制口令>
 MCP_AUTH_ENCRYPTION_KEY=<Fernet 密钥>
 CAPABILITY_INTEGRATION_KEY=<与 Platform 后端一致的共享密钥>
@@ -110,18 +112,16 @@ docker run --rm python:3.11-slim sh -c \
 `MCP_AUTH_ENCRYPTION_KEY`：丢失后，数据库中已保存的 MCP/API 凭据将无法解密。
 若服务器上已有此 Compose 项目的 PostgreSQL 数据卷，修改 `.env` 中的数据库口令不会自动
 更新数据库内的口令；请先同步变更数据库账户口令，或保留原口令。
-默认 `CAPABILITY_BIND_ADDRESS=127.0.0.1` 让前端只监听 ECS 本机，可通过 SSH 隧道访问。
-若要从公网打开前端，将其设为 `0.0.0.0` 并在阿里云安全组开放 TCP 3010。Compose 会让
-3010 前端端口对外监听，但 PostgreSQL、Redis 和后端直连端口仍默认只绑定
-`127.0.0.1`；不要开放 5433、6380、8010。
+统一网关由 PlatformAgent 前端的 Nginx 提供：`/` 是 PlatformAgent，`/capability/` 是
+Capability。Capability 的 3010 仅绑定 ECS 本机作为调试入口；公网只需在阿里云安全组
+开放 TCP 80，并在 PlatformAgent 的 `.env` 设置 `PLATFORM_BIND_ADDRESS=0.0.0.0`。
+PostgreSQL、Redis 和后端直连端口仍只绑定 `127.0.0.1`；不要开放 5433、6380、8010。
 
 **重要安全风险：当前 Capability 管理 API 没有用户认证。** 前端会代理管理 API，因此
-一旦将 3010 对全网开放，任何人都可能操作工具、Provider 和 Workflow，触发配置的外部
-服务调用。不要在未加认证的情况下对全网开放；至少将阿里云安全组 TCP 3010 来源限制为
-可信 IP。正式公开给所有用户前，先在 HTTPS 反向代理或应用层加认证和访问控制。
-Capability 与 Platform Compose 通过名为 `capability-internal` 的 Docker 网络进行后端互通；
-两个部署工作流都会自动创建该网络。需要接入 Capability 时，首次部署 Platform 前后都可
-触发 Capability 工作流，让两个后端都加入此网络。
+一旦按当前部署设置通过 `/capability/` 对全网开放，任何人都可能操作工具、Provider 和
+Workflow，触发配置的外部服务调用。HTTPS 不能替代认证；建议先增加应用层认证或反向代理
+访问控制。若不应让所有人访问，请勿公开端口 80，或在网关前限制来源 IP。
+统一工作流会自动创建 `capability-internal` 和 `public-gateway` 网络。
 
 ### 2. 配置 GitHub Actions
 
@@ -138,15 +138,17 @@ Capability 与 Platform Compose 通过名为 `capability-internal` 的 Docker �
 未经核验的 `ssh-keyscan` 输出信任服务器。Workflow 默认连接 SSH 22 端口并部署到
 `/opt/capability`；如需更改端口，添加 Actions variable `ALIYUN_SSH_PORT`。
 
-合并到 `main` 即会自动部署；也可以在 **Actions → Deploy Capability to Aliyun ECS → Run workflow**
-手动触发。完成后服务会在 ECS 重启后自动恢复。首次部署建议通过 SSH 隧道验证：
+推送到配置的部署分支会自动部署有改动的应用；也可以在
+**Actions → Deploy SmartAgent → Run workflow** 选择 `all`、`platformagent` 或 `capability`。
+完成后服务会在 ECS 重启后自动恢复。首次部署建议通过 SSH 隧道验证：
 
 ```bash
 ssh -L 3010:127.0.0.1:3010 <部署账号>@<ECS 地址>
 ```
 
-然后在本机打开 `http://localhost:3010`。若已配置公开绑定且安全组允许，公网前端地址为
-`http://<ECS公网IP>:3010`。API 健康检查为 `http://localhost:8010/health`。
+然后在本机打开 `http://localhost:3010`。统一网关通过
+`http://<ECS公网IP>/capability/` 提供 Capability 前端；PlatformAgent 位于
+`http://<ECS公网IP>/`。API 健康检查仍可通过 ECS 本机 `http://localhost:8010/health` 检查。
 
 ## 同步一个 MCP Provider
 

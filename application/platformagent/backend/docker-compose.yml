@@ -85,7 +85,12 @@ services:
       context: ../..
       dockerfile: platformagent/frontend/Dockerfile
     ports:
-      - "${PLATFORM_BIND_ADDRESS:-127.0.0.1}:3000:80"
+      - "${PLATFORM_BIND_ADDRESS:-127.0.0.1}:80:80"
+    networks:
+      default: {}
+      public-gateway:
+        aliases:
+          - platformagent-frontend
     depends_on:
       backend:
         condition: service_healthy
@@ -96,4 +101,6 @@ volumes:
 
 networks:
   capability-internal:
+    external: true
+  public-gateway:
     external: true

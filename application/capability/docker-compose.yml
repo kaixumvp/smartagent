@@ -54,14 +54,21 @@ services:
     build: ./frontend
     restart: unless-stopped
     ports:
-      # 3010 instead of 3000 to stay clear of the console and other dev servers.
-      - "${CAPABILITY_BIND_ADDRESS:-127.0.0.1}:3010:80"
+      # Loopback-only convenience port; public access goes through the PlatformAgent gateway.
+      - "127.0.0.1:3010:80"
     depends_on:
       - backend
+    networks:
+      default: {}
+      public-gateway:
+        aliases:
+          - capability-frontend
 
 volumes:
   pgdata:
 
 networks:
   capability-internal:
+    external: true
+  public-gateway:
     external: true

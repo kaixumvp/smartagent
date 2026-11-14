@@ -70,15 +70,17 @@ all three. Adapters never import `services` — the sub-agent cycle is broken by
 # Run from application/platformagent/backend
 # PowerShell; copy only if you do not already have a configured .env
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker network inspect capability-internal *> $null
-if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
+foreach ($network in @("capability-internal", "public-gateway")) {
+  docker network inspect $network *> $null
+  if ($LASTEXITCODE -ne 0) { docker network create $network }
+}
 docker compose up --build -d
 docker compose ps
 ```
 
 Compose starts PostgreSQL + pgvector, Redis, the API, and the production-built React
 console. It waits for the database, applies Alembic migrations, then starts the API and
-console. The API is at `http://localhost:8000`, the console at `http://localhost:3000`,
+console. The API is at `http://localhost:8000`, the console at `http://localhost`,
 and the API reference at `http://localhost:8000/docs`.
 
 Before starting, set a strong `JWT_SECRET` and `BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
@@ -91,17 +93,19 @@ For a Registry running directly on the host, the container can reach it at
 
 ## Deploying to Aliyun ECS
 
-The repository workflow `.github/workflows/deploy-platformagent.yml` builds the backend and
-frontend images and deploys them to `/opt/platformagent` over SSH when `main` receives changes
-under `application/platformagent/` or `application/ouroboros/`. Configure the same GitHub
-Actions secrets listed in the [Capability deployment guide](../../capability/README.md#2-configure-github-actions)
+The unified repository workflow `.github/workflows/deploy.yml` builds and deploys only the
+application changed by a push to `refactor/ouroboros-prune`. Run **Deploy SmartAgent** manually
+with target `all` for the first deployment; later manual runs can target either application.
+Configure the GitHub Actions secrets listed in the
+[Capability deployment guide](../../capability/README.md#2-configure-github-actions)
 (`ALIYUN_HOST`, `ALIYUN_USER`, `ALIYUN_SSH_PRIVATE_KEY`, and `ALIYUN_KNOWN_HOSTS`); optional
 `ALIYUN_SSH_PORT` is an Actions variable. The deployment account needs Docker access and write
-permission to `/opt/platformagent`.
+permission to `/opt/platformagent` and `/opt/capability`.
 
 Before the first deploy, create `/opt/platformagent/platformagent/backend/.env` on the ECS;
 the workflow intentionally does not copy local environment files. Use the settings in
-[`.env.example`](./.env.example) as a template. Set `PLATFORM_BIND_ADDRESS=127.0.0.1`, a random hexadecimal
+[`.env.example`](./.env.example) as a template. Set `PLATFORM_BIND_ADDRESS=0.0.0.0` to publish the
+shared gateway on port 80, or `127.0.0.1` to keep it private; also set a random hexadecimal
 `POSTGRES_PASSWORD`, a `JWT_SECRET` with at least 32 characters, and a strong
 `BOOTSTRAP_ADMIN_PASSWORD`. Set the LLM API key if agents should make LLM calls. For
 Capability integration, use `CAPABILITY_REGISTRY_URL=http://capability-backend:8000` and the
@@ -110,22 +114,20 @@ does not upload local environment files. Existing database volumes retain their 
 PostgreSQL password, so changing `POSTGRES_PASSWORD` requires changing the database role
 password too.
 
-Both Compose stacks publish their ports only on the ECS loopback interface in deployment mode.
-Use an SSH tunnel or an HTTPS reverse proxy with authentication; do not expose the API or
-console ports directly to the Internet. On first startup, Alembic applies database migrations
+The PlatformAgent frontend is the shared Nginx gateway: `/` serves PlatformAgent and
+`/capability/` proxies to Capability. To make both available on the public IP, allow only TCP 80
+in the ECS security group; the application API, database, Redis, and Capability's convenience
+port remain private. On first startup, Alembic applies database migrations
 and seeds the initial admin account. Change that account's password immediately after logging
 in. Services restart automatically after ECS reboots.
 
-To temporarily access the PlatformAgent console directly from the Internet, set
-`PLATFORM_BIND_ADDRESS=0.0.0.0` in the server `.env` and allow inbound TCP port `3000` in the
-ECS security group. This exposes only the frontend port: database, Redis, and backend API remain
-bound to `127.0.0.1` by default. Direct port 3000 uses HTTP; for production, prefer an HTTPS
-reverse proxy on ports 80/443 and keep the app ports private. Never expose ports 5432, 6379,
-or 8000 publicly.
+The shared gateway currently uses HTTP. For production, terminate HTTPS at a trusted reverse
+proxy/load balancer or configure TLS before exposing it broadly. Never expose ports 5432, 6379,
+8000, 8010, or 3010 publicly.
 
-If Capability is also being deployed, run the Capability deployment workflow so its backend
-joins the shared Docker network. Then both backends can reach each other by their Compose
-network aliases without exposing the internal API port on the public interface.
+Both frontends and backends join the shared Docker networks through the unified workflow.
+PlatformAgent reaches Capability at `http://capability-backend:8000`; the gateway reaches its
+frontend at `http://capability-frontend:80`.
 
 `docker compose down` stops the services and preserves database data. Do not use
 `docker compose down -v` unless you intend to delete the database volume.
@@ -135,8 +137,10 @@ network aliases without exposing the internal API port on the public interface.
 ```bash
 # Run from application/platformagent/backend
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker network inspect capability-internal *> $null
-if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
+foreach ($network in @("capability-internal", "public-gateway")) {
+  docker network inspect $network *> $null
+  if ($LASTEXITCODE -ne 0) { docker network create $network }
+}
 docker compose up -d postgres redis
 poetry install
 poetry run alembic upgrade head

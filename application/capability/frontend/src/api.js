@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: `${import.meta.env.BASE_URL}api` })
 
 export const listTools = (params) =>
   api.get('/tools', { params }).then((r) => r.data)
