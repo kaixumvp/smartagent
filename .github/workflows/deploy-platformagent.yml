@@ -103,8 +103,8 @@ jobs:
             echo "Set BOOTSTRAP_ADMIN_PASSWORD in $env_file" >&2
             exit 1
           }
-          grep -Eq '^CAPABILITY_REGISTRY_URL=http://capability-backend:8000/?$' "$env_file" || {
-            echo "Set CAPABILITY_REGISTRY_URL=http://capability-backend:8000 in $env_file" >&2
+          grep -Eq '^CAPABILITY_REGISTRY_URL=http://127.0.0.1:8000/?$' "$env_file" || {
+            echo "Set CAPABILITY_REGISTRY_URL=http://127.0.0.:8000 in $env_file" >&2
             exit 1
           }
           tar -xzf "/tmp/${prefix}-source.tar.gz" -C /opt/platformagent
