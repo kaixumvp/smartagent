@@ -3,7 +3,7 @@ name: Deploy Capability to Aliyun ECS
 on:
   push:
     branches:
-      - main
+      - refactor/ouroboros-prune
     paths:
       - "application/capability/**"
       - ".github/workflows/deploy-capability.yml"

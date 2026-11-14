@@ -3,7 +3,7 @@ name: Deploy PlatformAgent to Aliyun ECS
 on:
   push:
     branches:
-      - main
+      - refactor/ouroboros-prune
     paths:
       - "application/platformagent/**"
       - "application/ouroboros/**"
