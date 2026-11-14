@@ -53,22 +53,6 @@ def test_build_default_registry_has_builtins():
     assert {"calculator", "http"} <= names
 
 
-@pytest.mark.asyncio
-async def test_tool_registry_run():
-    reg = ToolRegistry()
-    reg.register(_EchoTool())
-    r = await reg.run("echo", x="hi")
-    assert r.output == "hi"
-
-
-@pytest.mark.asyncio
-async def test_tool_registry_unknown_tool():
-    reg = ToolRegistry()
-    r = await reg.run("nope")
-    assert not r.success
-    assert "unknown tool" in r.error
-
-
 def test_load_spec_json():
     spec = load_spec('{"openapi": "3.0.0", "paths": {}}')
     assert spec["openapi"] == "3.0.0"

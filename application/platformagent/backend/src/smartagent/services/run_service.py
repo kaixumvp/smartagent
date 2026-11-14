@@ -145,7 +145,6 @@ class RunService:
             permission_context=self._permission_context,
             checkpointer=DbCheckpointer(db),
             event_sink=event_sink,
-            subagent_runner=self._subagent_runner,
             db=db,
             id_gen=new_id,  # framework-minted ids keep the business `{prefix}_{hex}` convention
             # long_term_memory intentionally unset — see module docstring, note 2.

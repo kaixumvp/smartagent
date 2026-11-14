@@ -14,9 +14,7 @@ classDiagram
         <<Protocol>>
         +kind: str
         +manifest: PluginManifest
-        +setup(config: dict) async
         +invoke(ctx: InvokeContext, **kw) async
-        +teardown() async
     }
 
     class PluginManifest {
@@ -44,20 +42,11 @@ classDiagram
         -_by_key: dict
         -_by_fn: dict
         +register(plugin: Plugin)
-        +register_tool(tool: Tool)
+        +register_tool(tool: BaseTool)
         +get(key: str) Plugin
         +resolve(keys: list[str]) list~Plugin~
         +to_openai_schema(keys: list[str]) list~dict~
         +invoke(key: str, ctx: InvokeContext, **kw) async
-    }
-
-    class Tool {
-        <<Protocol>>
-        +name: str
-        +description: str
-        +parameters: dict
-        +permission: str
-        +run(**kwargs) async
     }
 
     class BaseTool {
@@ -72,7 +61,7 @@ classDiagram
 
     class ToolAsPlugin {
         <<Adapter>>
-        -_tool: Tool
+        -_tool: BaseTool
         +kind: tool
         +manifest: PluginManifest
         +invoke(ctx: InvokeContext, **kw) async
@@ -120,8 +109,8 @@ classDiagram
     }
 
     class SkillManager {
-        -_run_subagent: RunSubagent
-        -_run_flow: RunFlow
+        -_run_subagent: SubagentRunner
+        -_run_flow: FlowRunner
         +build(record: dict) Skill
     }
 
@@ -134,14 +123,13 @@ classDiagram
 
     Plugin <|.. ToolAsPlugin : implements
     Plugin <|.. Skill : implements
-    Tool <|.. BaseTool : implements
     BaseTool <|-- CalculatorTool
     BaseTool <|-- HttpTool
     Skill <|-- PromptSkill
     Skill <|-- FunctionSkill
     Skill <|-- FlowSkill
     Skill <|-- AgentSkill
-    ToolAsPlugin o-- Tool : wraps
+    ToolAsPlugin o-- BaseTool : wraps
     PluginRegistry o-- Plugin : stores
     Plugin --> PluginManifest : exposes
     Plugin --> InvokeContext : receives
@@ -152,7 +140,7 @@ classDiagram
 
 ### 关键设计点
 
-- `Plugin` 是统一运行时协议，要求插件提供 `manifest`、`setup`、`invoke` 和 `teardown`。
+- `Plugin` 是统一运行时协议，要求插件提供 `kind`、`manifest` 和 `invoke`。
 - `Tool` 保留旧的 `run(**kwargs)` 接口；`ToolAsPlugin` 将它适配为 `Plugin.invoke(ctx, **kw)`。
 - `Skill` 是 `Plugin` 的抽象实现，具体形式由 `type` 区分：`prompt`、`function`、`flow`、`agent`。
 - `PluginManifest.function_name` 负责生成提供给 LLM 的函数名：普通 tool 使用原名，skill 使用 `skill_` 前缀。

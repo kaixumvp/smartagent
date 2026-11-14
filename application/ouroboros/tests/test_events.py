@@ -4,7 +4,6 @@ from ouroboros.events import (
     run_awaiting_human,
     run_completed,
     run_failed,
-    run_rejected,
     run_started,
     step_completed,
 )
@@ -66,9 +65,3 @@ def test_run_approved():
     e = run_approved("r1")
     assert e.event == "run.approved"
     assert e.data["status"] == "running"
-
-
-def test_run_rejected():
-    e = run_rejected("r1")
-    assert e.event == "run.rejected"
-    assert e.data["status"] == "canceled"

@@ -1,11 +1,12 @@
-"""Memory Manager facade: the single entry point the runtime uses for memory operations.
+"""Memory Manager facade: host-side memory orchestration.
 
-Implements the memory surface (write / recall / consolidate) by delegating to the Working
-Brain and Long-Term Memory ports. The Memory Graph is V0.3.
+Delegates write / recall / consolidate to the Working Memory (short-term) and Long-Term
+Memory (long-term) ports plus a Consolidator. The runtime itself calls the ``LongTermMemory``
+and ``Knowledge`` ports directly; hosts use this facade to write session history and
+consolidate it into long-term memory.
 """
 
 from ouroboros.memory.consolidator import Consolidator
-from ouroboros.memory.working import WorkingBrain
 from ouroboros.ports import LongTermMemory, MemoryEntry, WorkingMemory
 
 

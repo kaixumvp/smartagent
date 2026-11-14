@@ -28,7 +28,7 @@ class CachingGateway:
         key = self._key(messages, model, tools)
         if key in self._cache:
             self.hits += 1
-            return self._cache[key]
+            return self._cache[key].model_copy(deep=True)
         self.misses += 1
         resp = await self._gateway.chat(messages, model=model, tools=tools)
         self._cache[key] = resp

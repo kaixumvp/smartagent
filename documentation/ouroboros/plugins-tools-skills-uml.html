@@ -187,9 +187,7 @@
         &lt;&lt;Protocol&gt;&gt;
         +kind: str
         +manifest: PluginManifest
-        +setup(config: dict) async
         +invoke(ctx: InvokeContext, **kw) async
-        +teardown() async
     }
     class PluginManifest {
         &lt;&lt;Pydantic Model&gt;&gt;
@@ -214,15 +212,14 @@
         -_by_key: dict
         -_by_fn: dict
         +register(plugin: Plugin)
-        +register_tool(tool: Tool)
+        +register_tool(tool: BaseTool)
         +get(key: str) Plugin
         +resolve(keys: list[str]) list~Plugin~
         +to_openai_schema(keys: list[str]) list~dict~
         +invoke(key: str, ctx: InvokeContext, **kw) async
     }
-    class Tool { &lt;&lt;Protocol&gt;&gt; +name: str +description: str +parameters: dict +permission: str +run(**kwargs) async }
     class BaseTool { &lt;&lt;Abstract Base Class&gt;&gt; +run(**kwargs) async }
-    class ToolAsPlugin { &lt;&lt;Adapter&gt;&gt; -_tool: Tool +kind: tool +manifest: PluginManifest +invoke(ctx, **kw) async }
+    class ToolAsPlugin { &lt;&lt;Adapter&gt;&gt; -_tool: BaseTool +kind: tool +manifest: PluginManifest +invoke(ctx, **kw) async }
     class CalculatorTool { +name: calculator +run(expression: str) async }
     class HttpTool { +name: http_request +run(method, url, ...) async }
     class Skill { &lt;&lt;Abstract Base Class&gt;&gt; +kind: skill +type: str +manifest: PluginManifest +body: dict +invoke(ctx, **kw) async }
@@ -234,14 +231,13 @@
     class Graph { +plan(state) +decide(state) +execute(state) +observe(state) }
     Plugin &lt;|.. ToolAsPlugin : implements
     Plugin &lt;|.. Skill : implements
-    Tool &lt;|.. BaseTool : implements
     BaseTool &lt;|-- CalculatorTool
     BaseTool &lt;|-- HttpTool
     Skill &lt;|-- PromptSkill
     Skill &lt;|-- FunctionSkill
     Skill &lt;|-- FlowSkill
     Skill &lt;|-- AgentSkill
-    ToolAsPlugin o-- Tool : wraps
+    ToolAsPlugin o-- BaseTool : wraps
     PluginRegistry o-- Plugin : stores
     Plugin --&gt; PluginManifest : exposes
     Plugin --&gt; InvokeContext : receives

@@ -2,7 +2,7 @@
 
 要点：
 - Tool（旧协议 `run()`）经 `ToolAsPlugin` 适配成 Plugin，与 Skill 统一执行。
-- Plugin 协议更完整（setup/invoke/teardown 生命周期），可直接 register。
+- 自定义 Plugin 只需提供 `kind` / `manifest` / `invoke`，可直接 register。
 - 无论 Tool 还是 Plugin，最终都由 Agent 的 decide 节点从 OpenAI schema 里选择。
 运行：``python example/plugins_tools.py``
 """
@@ -34,7 +34,7 @@ class WeatherTool(BaseTool):
 
 
 class ClockPlugin:
-    """完整 Plugin：带生命周期。可做 tool 之外任何 kind（skill/knowledge/...）。"""
+    """自定义 Plugin：提供 kind/manifest/invoke，可做 tool 之外任何 kind（skill/knowledge/...）。"""
 
     kind = "tool"
 
@@ -49,12 +49,6 @@ class ClockPlugin:
     @property
     def manifest(self) -> PluginManifest:
         return self._manifest
-
-    async def setup(self, config: dict) -> None:
-        print("  [ClockPlugin.setup]")
-
-    async def teardown(self) -> None:
-        print("  [ClockPlugin.teardown]")
 
     async def invoke(self, ctx: InvokeContext, **kw) -> str:
         return "12:00 (mock)"

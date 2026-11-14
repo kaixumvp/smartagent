@@ -50,12 +50,6 @@ class KnowledgePlugin:
     def manifest(self) -> PluginManifest:
         return self._manifest
 
-    async def setup(self, config: dict) -> None:
-        return None
-
-    async def teardown(self) -> None:
-        return None
-
     async def invoke(self, ctx: InvokeContext, **kw: Any) -> str:
         query = str(kw.get("query") or kw.get("q") or (json.dumps(kw, ensure_ascii=False) if kw else ""))
         entries = await self._retriever.retrieve(query, top_k=self._top_k)

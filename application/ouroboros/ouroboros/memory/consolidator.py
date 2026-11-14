@@ -1,8 +1,8 @@
 """Session consolidation: extract high-value fragments from Working Brain and store them in
-Vector Memory (the Working → Cognitive step of the Brain lifecycle, V0.2 baseline).
+Vector Memory (the Working → Cognitive step of the Brain lifecycle).
 
-V0.2 uses a rule-based extractor (user statements + the final assistant answer) with
-similarity-based dedup. `reflect`-based scoring, forgetting, and the Memory Graph are V0.3.
+Rule-based extraction, ``Reflector``-based importance scoring, a forgetting threshold, and
+similarity dedup. Each candidate is persisted best-effort so one failure does not abort the batch.
 """
 
 import logging
@@ -47,17 +47,21 @@ class Consolidator:
             importance = self._reflector.score(content)
             if importance < self._importance_threshold:
                 continue  # forgetting: drop low-value fragments before they reach memory
-            existing = await self._vector_store.recall(db, tenant_id, user_id, content, top_k=1)
-            if existing and (existing[0].similarity or 0.0) >= self._threshold:
-                continue  # near-duplicate already stored
-            await self._vector_store.add(
-                db,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                session_id=session_id,
-                content=content,
-                importance=importance,
-            )
+            try:
+                existing = await self._vector_store.recall(db, tenant_id, user_id, content, top_k=1)
+                if existing and (existing[0].similarity or 0.0) >= self._threshold:
+                    continue  # near-duplicate already stored
+                await self._vector_store.add(
+                    db,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    session_id=session_id,
+                    content=content,
+                    importance=importance,
+                )
+            except Exception:  # noqa: BLE001 — memory persistence is best-effort
+                logger.warning("consolidation failed for a candidate", exc_info=True)
+                continue
             inserted += 1
         logger.debug("consolidated %d memories (session_id=%s)", inserted, session_id)
         return inserted

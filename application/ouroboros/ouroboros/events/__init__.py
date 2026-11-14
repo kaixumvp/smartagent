@@ -4,7 +4,6 @@ from ouroboros.events.events import (
     run_awaiting_human,
     run_completed,
     run_failed,
-    run_rejected,
     run_started,
     step_completed,
 )
@@ -17,5 +16,4 @@ __all__ = [
     "run_failed",
     "run_awaiting_human",
     "run_approved",
-    "run_rejected",
 ]

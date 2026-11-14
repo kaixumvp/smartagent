@@ -7,14 +7,10 @@ template and HTTP config.
 """
 
 import json
-import logging
 from typing import Any
 
-import httpx
-
+from ouroboros.tools._http import http_request
 from ouroboros.tools.base import BaseTool, ToolResult
-
-logger = logging.getLogger(__name__)
 
 
 def load_spec(raw: str) -> dict:
@@ -82,20 +78,15 @@ class HttpOpenApiTool(BaseTool):
         self.config = config or {}
 
     async def run(self, **kwargs: Any) -> ToolResult:
-        try:
-            body = kwargs.pop("body", None)
-            # Separate path params (embedded in the template) from query params (the rest).
-            url = self.url_template.format(**kwargs)
-            query = {k: v for k, v in kwargs.items() if f"{{{k}}}" not in self.url_template}
-            headers = dict(self.config.get("headers") or {})
-            auth = self.config.get("auth") or {}
-            if auth.get("type") == "api_key":
-                headers[auth.get("header", "X-Api-Key")] = auth.get("key", "")
-            async with httpx.AsyncClient(timeout=float(self.config.get("timeout", 30))) as client:
-                resp = await client.request(
-                    self.method, url, params=query or None, json=body, headers=headers
-                )
-                return ToolResult(success=resp.is_success, output=resp.text[:4000])
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("http tool %s failed: %s", self.name, exc)
-            return ToolResult(success=False, output="", error=str(exc))
+        body = kwargs.pop("body", None)
+        # Separate path params (embedded in the template) from query params (the rest).
+        url = self.url_template.format(**kwargs)
+        query = {k: v for k, v in kwargs.items() if f"{{{k}}}" not in self.url_template}
+        headers = dict(self.config.get("headers") or {})
+        auth = self.config.get("auth") or {}
+        if auth.get("type") == "api_key":
+            headers[auth.get("header", "X-Api-Key")] = auth.get("key", "")
+        return await http_request(
+            self.method, url, timeout=float(self.config.get("timeout", 30)),
+            params=query or None, json=body, headers=headers,
+        )

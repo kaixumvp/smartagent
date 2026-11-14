@@ -12,6 +12,7 @@ from ouroboros.plugins.base import PluginManifest
 from ouroboros.plugins.registry import PluginRegistry
 from ouroboros.ports import PermissionContext, PermissionDecision
 from ouroboros.skills.prompt_skill import PromptSkill
+from ouroboros.security import wrap_tool_result
 from ouroboros.tools.base import ToolResult
 
 
@@ -120,17 +121,12 @@ async def test_run_decide_uses_custom_system_prompt():
 
 
 @pytest.mark.asyncio
-async def test_run_decide_injects_plan_and_tool_result():
+async def test_run_decide_injects_plan():
     llm = MockLLMGateway([LLMResponse(content="x", usage=Usage())])
-    state = {
-        "plan": [{"id": 1, "description": "step"}],
-        "messages": [],
-        "last_tool_result": "tool output",
-    }
+    state = {"plan": [{"id": 1, "description": "step"}], "messages": []}
     await run_decide(state, llm, "m", [], None)
     contents = [m.get("content", "") for m in llm.calls[0]["messages"]]
     assert any("Current plan" in c for c in contents)
-    assert any("Tool result" in c for c in contents)
 
 
 # --------------------------------------------------------------------------- observe node
@@ -143,7 +139,7 @@ async def test_run_observe_increments_iteration():
 @pytest.mark.asyncio
 async def test_run_observe_appends_tool_result():
     result = await run_observe({"iteration": 0, "messages": [], "last_tool_result": "out", "max_iterations": 20})
-    assert result["messages"] == [{"role": "tool", "content": "out"}]
+    assert result["messages"] == [{"role": "tool", "content": wrap_tool_result("out")}]
 
 
 @pytest.mark.asyncio

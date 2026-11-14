@@ -1,8 +1,8 @@
 """能力端口（Ports）全景：实现并注入全部契约，跑一个完整 Agent。
 
-框架只依赖 ports.py 的协议；宿主实现它们并通过 RuntimeDeps 注入。本例逐个实现：
-LLMGateway / Embedder / PermissionChecker / WorkingMemory / LongTermMemory / Knowledge /
-EventSink / Checkpointer / SubagentRunner / FlowRunner，然后一次性接线跑起来。
+框架只依赖 ports.py 的协议；宿主实现它们并通过 RuntimeDeps 注入。本例实现：
+LLMGateway / PermissionChecker / LongTermMemory / Knowledge / EventSink / Checkpointer，
+子 Agent 回调经 SkillManager 注入，然后一次性接线跑起来。
 运行：``python example/ports_example.py``
 """
 
@@ -10,7 +10,6 @@ import asyncio
 
 from ouroboros import AgentDefinition, AgentRuntime, RunContext, RuntimeDeps
 from ouroboros.core.checkpointer import InMemoryCheckpointer
-from ouroboros.llm.embedder import HashEmbedder
 from ouroboros.plugins.registry import PluginRegistry
 from ouroboros.ports import (
     InvokeContext,
@@ -19,7 +18,6 @@ from ouroboros.ports import (
     MemoryEntry,
     PermissionContext,
     PermissionDecision,
-    WorkingMemory,
     check_permission,
 )
 from ouroboros.skills.manager import SkillManager
@@ -34,17 +32,6 @@ class PermissionManager:
               resource_permission="read", requires_approval=False, approved=None) -> PermissionDecision:
         return check_permission(ctx, action, resource_type, resource_id,
                                 resource_permission, requires_approval, approved)
-
-
-class InMemoryWorking(WorkingMemory):
-    def __init__(self) -> None:
-        self._hist: dict[str, list[dict]] = {}
-
-    async def get_history(self, session_id: str) -> list[dict]:
-        return list(self._hist.get(session_id, []))
-
-    async def append(self, session_id: str, message: dict) -> None:
-        self._hist.setdefault(session_id, []).append(message)
 
 
 class InMemoryLongTerm(LongTermMemory):
@@ -81,9 +68,6 @@ async def main() -> None:
     async def run_subagent(agent_ref: str, task: str, ctx) -> str:
         return f"[subagent:{agent_ref}] 完成：{task}"
 
-    async def run_flow(graph_spec, ctx, kwargs) -> str:
-        return f"[flow:{graph_spec.get('name')}]"
-
     # 事件 sink
     events = []
 
@@ -110,16 +94,12 @@ async def main() -> None:
     ])
     deps = RuntimeDeps(
         llm=llm,
-        embedder=HashEmbedder(256),
         permission_checker=PermissionManager(),
         permission_context=PermissionContext(permission_codes={"run:execute"}),
-        working_memory=InMemoryWorking(),
         long_term_memory=InMemoryLongTerm(),
         knowledge=InMemoryKnowledge([KnowledgeEntry(id="k1", content="公司退款政策")]),
         event_sink=sink,
         checkpointer=InMemoryCheckpointer(),
-        subagent_runner=run_subagent,
-        flow_runner=run_flow,
         db=None,
     )
     definition = AgentDefinition(model="mock-model", system_prompt="你是项目助理", plugins=registry.all())

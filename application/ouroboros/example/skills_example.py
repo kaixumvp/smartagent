@@ -2,7 +2,7 @@
 
 要点：
 - Skill 是 kind="skill" 的插件，用 `SkillManager.build(record)` 从持久化 record 构建。
-- flow/agent 需要宿主注入 `run_flow` / `run_subagent` 回调（经 RuntimeDeps 传入）。
+- flow/agent 需要宿主在 `SkillManager` 构造时注入 `run_flow` / `run_subagent` 回调。
 - LLM 看到的函数名带 `skill_` 前缀，避免与 tool 撞名。
 运行：``python example/skills_example.py``
 """
@@ -93,7 +93,7 @@ async def main() -> None:
         finish("简报已生成。"),
     ])
     definition = AgentDefinition(model="mock-model", system_prompt="你是项目助理", plugins=registry.all())
-    deps = RuntimeDeps(llm=llm, subagent_runner=run_subagent, flow_runner=run_flow)
+    deps = RuntimeDeps(llm=llm)
     result = await AgentRuntime().run(
         definition, "为产品团队生成季度复盘简报", RunContext(run_id="demo"), deps
     )

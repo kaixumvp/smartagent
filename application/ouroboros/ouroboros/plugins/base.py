@@ -39,11 +39,5 @@ class ToolAsPlugin:
             permission=getattr(self._tool, "permission", "read"),
         )
 
-    async def setup(self, config: dict) -> None:
-        return None
-
     async def invoke(self, ctx: InvokeContext, **kw: Any) -> Any:
         return await self._tool.run(**kw)
-
-    async def teardown(self) -> None:
-        return None

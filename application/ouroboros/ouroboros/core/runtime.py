@@ -23,6 +23,7 @@ from ouroboros.core.nodes import execute as execute_mod
 from ouroboros.core.nodes import observe as observe_mod
 from ouroboros.core.nodes import plan as plan_mod
 from ouroboros.core.resilience import CircuitBreaker, CircuitOpenError, RetryPolicy, run_with_retry
+from ouroboros.core.state import FINISH
 from ouroboros.events.events import (
     run_approved,
     run_awaiting_human,
@@ -37,17 +38,13 @@ from ouroboros.observability.trace import default_tracer
 from ouroboros.plugins.registry import PluginRegistry
 from ouroboros.ports import (
     Checkpointer,
-    Embedder,
     EventSink,
-    FlowRunner,
     Knowledge,
     LLMGateway,
     LongTermMemory,
     Metrics,
     PermissionChecker,
     PermissionContext,
-    SubagentRunner,
-    WorkingMemory,
 )
 from ouroboros.security import Redactor, default_redactor
 
@@ -108,15 +105,11 @@ class RuntimeDeps:
     """Port implementations injected by the host. Only `llm` is required."""
 
     llm: LLMGateway
-    embedder: Embedder | None = None
     permission_checker: PermissionChecker | None = None
     permission_context: PermissionContext | None = None
-    working_memory: WorkingMemory | None = None
     long_term_memory: LongTermMemory | None = None
     knowledge: Knowledge | None = None
     event_sink: EventSink | None = None
-    subagent_runner: SubagentRunner | None = None
-    flow_runner: FlowRunner | None = None
     checkpointer: Checkpointer | None = None
     db: Any = None  # transparent handle passed through to LongTermMemory/Knowledge ports
     id_gen: Callable[[str], str] | None = None
@@ -289,8 +282,8 @@ class AgentRuntime:
 
                     state[_NEXT] = self._next(node, state)
                     if node == "execute" and state.get("status") == "awaiting_human":
-                        # Pause: do NOT checkpoint the post-execute state. The last saved
-                        # snapshot (post-decide) is what a resume re-runs from.
+                        # Pause on the human gate. The pre-execute checkpoint (saved after the
+                        # preceding decide) is what a resume re-runs from.
                         pending = state.get("pending_approvals") or []
                         await self._emit(deps, run_awaiting_human(run_id, pending))
                         return RunResult(
@@ -299,7 +292,11 @@ class AgentRuntime:
                             token_usage=usage,
                             pending_approvals=pending,
                         )
-                    await self._checkpoint(deps, run_id, state)
+                    if node == "decide":
+                        # Only the pre-execute state needs persisting: it lets resume re-run the
+                        # exact blocked execute step, and it never contains tool output (which may
+                        # hold secrets). Checkpointing after execute/observe would write those.
+                        await self._checkpoint(deps, run_id, state)
 
             result = state.get("result")
             await self._emit(deps, run_completed(run_id, result, usage))
@@ -382,7 +379,7 @@ class AgentRuntime:
         if node == "plan":
             return "decide"
         if node == "decide":
-            return None if state.get("action") == "__finish__" else "execute"
+            return None if state.get("action") == FINISH else "execute"
         if node == "execute":
             return None if state.get("status") == "awaiting_human" else "observe"
         if node == "observe":
@@ -409,27 +406,31 @@ class AgentRuntime:
             (e.similarity or 0.0) >= 0.5 or (e.confidence or 0.0) >= 0.5 for e in entries
         )
         if not sufficient and deps.knowledge is not None:
-            try:
-                docs = await deps.knowledge.search(task, top_k=5)
-                contexts = [{"content": d.content, "source": d.source or "knowledge"} for d in docs]
-                # Write the fallback back into long-term memory so the next recall is sufficient.
-                if deps.long_term_memory is not None:
-                    for d in docs:
-                        try:
-                            await deps.long_term_memory.add(
-                                deps.db,
-                                tenant_id=context.tenant_id,
-                                user_id=context.user_id,
-                                session_id=context.session_id,
-                                content=d.content,
-                                importance=0.3,
-                                confidence=0.5,
-                            )
-                        except Exception:  # noqa: BLE001 — write-back is best-effort
-                            pass
-            except Exception:  # noqa: BLE001
-                logger.warning("knowledge fallback failed", exc_info=True)
+            contexts = await self._recall_from_knowledge(deps, context, task)
+        return contexts
 
+    async def _recall_from_knowledge(self, deps: RuntimeDeps, context: RunContext, task: str) -> list[dict]:
+        """Search the Knowledge port and write the results back into long-term memory."""
+        try:
+            docs = await deps.knowledge.search(task, top_k=5)
+        except Exception:  # noqa: BLE001 — knowledge is best-effort
+            logger.warning("knowledge fallback failed", exc_info=True)
+            return []
+        contexts = [{"content": d.content, "source": d.source or "knowledge"} for d in docs]
+        if deps.long_term_memory is not None:
+            for d in docs:
+                try:
+                    await deps.long_term_memory.add(
+                        deps.db,
+                        tenant_id=context.tenant_id,
+                        user_id=context.user_id,
+                        session_id=context.session_id,
+                        content=d.content,
+                        importance=0.3,
+                        confidence=0.5,
+                    )
+                except Exception:  # noqa: BLE001 — write-back is best-effort
+                    pass
         return contexts
 
     def _merge_usage(self, usage: dict, update: dict) -> None:

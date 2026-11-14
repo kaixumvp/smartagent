@@ -60,6 +60,8 @@ mock-server/      真实 FastMCP server（3 个工具），用于验证同步
 ## 快速启动（Docker Compose）
 
 ```bash
+docker network inspect capability-internal *> $null
+if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
 docker compose up --build
 ```
 
@@ -72,6 +74,72 @@ docker compose up --build
 
 > 端口之所以要挪：`application/platformagent/backend/docker-compose.yml` 发布 5432，
 > 业务层的 uvicorn 用 8000。两栈若都用默认端口，后起的那个会启动失败或静默连错库。
+
+## 部署到阿里云 ECS（GitHub Actions 自动部署）
+
+仓库的 `.github/workflows/deploy-capability.yml` 会在推送到 `main` 后构建前后端镜像，
+通过 SSH 上传源码和镜像，并在 ECS 上执行 `docker compose up -d`。也可以从 GitHub
+Actions 页面手动运行。服务器需要 Linux、Docker Engine 和 Docker Compose v2；部署账号
+需要有 Docker 使用权限，并能写入 `/opt/capability`。
+
+### 1. 首次准备服务器
+
+在 x86_64 Linux ECS 上安装 Docker/Compose，创建部署目录并将其交给部署账号。配置 ECS 安全组时，
+只允许可信来源访问 SSH；不要为了 GitHub-hosted runner 而把 SSH 无限制开放到公网。
+若 runner 无法安全地访问 ECS，可改用有固定出口 IP 的自托管 runner。
+
+首次部署前，在服务器创建 `/opt/capability/.env`（不要提交到 Git），至少包含：
+
+```dotenv
+CAPABILITY_BIND_ADDRESS=127.0.0.1
+POSTGRES_PASSWORD=<随机生成的十六进制口令>
+MCP_AUTH_ENCRYPTION_KEY=<Fernet 密钥>
+CAPABILITY_INTEGRATION_KEY=<与 Platform 后端一致的共享密钥>
+AUTO_CREATE_TABLES=false
+```
+
+可在服务器上生成口令和 Fernet 密钥：
+
+```bash
+openssl rand -hex 32
+docker run --rm python:3.11-slim sh -c \
+  'pip install -q "cryptography>=42" && python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+```
+
+如果暂不接入 Platform，可以省略 `CAPABILITY_INTEGRATION_KEY`。务必备份
+`MCP_AUTH_ENCRYPTION_KEY`：丢失后，数据库中已保存的 MCP/API 凭据将无法解密。
+若服务器上已有此 Compose 项目的 PostgreSQL 数据卷，修改 `.env` 中的数据库口令不会自动
+更新数据库内的口令；请先同步变更数据库账户口令，或保留原口令。
+`CAPABILITY_BIND_ADDRESS=127.0.0.1` 让服务端口仅监听 ECS 本机；可通过 SSH 隧道访问，
+或在配置 HTTPS 反向代理并加上访问控制后再对外提供服务。当前管理 API **没有用户鉴权**，
+不要直接将 3010/8010 暴露到公网。数据库和 Redis 也不应开放公网访问。
+Capability 与 Platform Compose 通过名为 `capability-internal` 的 Docker 网络进行后端互通；
+两个部署工作流都会自动创建该网络。需要接入 Capability 时，首次部署 Platform 前后都可
+触发 Capability 工作流，让两个后端都加入此网络。
+
+### 2. 配置 GitHub Actions
+
+在仓库 **Settings → Secrets and variables → Actions** 添加以下 Repository secrets：
+
+| Secret | 内容 |
+|---|---|
+| `ALIYUN_HOST` | ECS 公网 IP 或 SSH 主机名 |
+| `ALIYUN_USER` | 部署账号 |
+| `ALIYUN_SSH_PRIVATE_KEY` | 对应账号的 SSH 私钥（完整 PEM 内容） |
+| `ALIYUN_KNOWN_HOSTS` | 预先核验过的 SSH host key 行 |
+
+`ALIYUN_KNOWN_HOSTS` 应通过可信渠道核验 ECS 的 SSH host key 指纹后再录入，不要仅凭
+未经核验的 `ssh-keyscan` 输出信任服务器。Workflow 默认连接 SSH 22 端口并部署到
+`/opt/capability`；如需更改端口，添加 Actions variable `ALIYUN_SSH_PORT`。
+
+合并到 `main` 即会自动部署；也可以在 **Actions → Deploy Capability to Aliyun ECS → Run workflow**
+手动触发。完成后服务会在 ECS 重启后自动恢复。首次部署建议通过 SSH 隧道验证：
+
+```bash
+ssh -L 3010:127.0.0.1:3010 <部署账号>@<ECS 地址>
+```
+
+然后在本机打开 `http://localhost:3010`。API 健康检查为 `http://localhost:8010/health`。
 
 ## 同步一个 MCP Provider
 

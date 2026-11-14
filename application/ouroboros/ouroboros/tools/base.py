@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Protocol
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -10,19 +10,8 @@ class ToolResult(BaseModel):
     error: str | None = None
 
 
-class Tool(Protocol):
-    """Tool abstraction protocol. From V0.2 it will be unified into the Plugin protocol, with Tool becoming a subtype of Plugin."""
-
-    name: str
-    description: str
-    parameters: dict  # JSON Schema (for LLM function calling)
-    permission: str  # read|write|admin
-
-    async def run(self, **kwargs: Any) -> ToolResult: ...
-
-
 class BaseTool(ABC):
-    """Base class for builtin tools that satisfies the Tool protocol; subclasses only override run."""
+    """Base class for run-based tools; subclasses only override ``run``."""
 
     id: str = ""
     name: str = ""
@@ -32,3 +21,8 @@ class BaseTool(ABC):
 
     @abstractmethod
     async def run(self, **kwargs: Any) -> ToolResult: ...
+
+
+# Backward-compatible alias: ``Tool`` was a structural Protocol before being folded into
+# ``BaseTool``. Hosts importing ``ouroboros.tools.Tool`` still resolve it.
+Tool = BaseTool

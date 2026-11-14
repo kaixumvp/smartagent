@@ -3,7 +3,7 @@ import json
 import logging
 import time
 
-from ouroboros.core.state import AgentState
+from ouroboros.core.state import FINISH, AgentState
 from ouroboros.observability.metrics import noop_metrics
 from ouroboros.observability.trace import default_tracer
 from ouroboros.plugins.base import InvokeContext
@@ -60,7 +60,7 @@ async def run_execute(
     tracer = tracer or default_tracer
     metrics = metrics or noop_metrics
     action = state.get("action")
-    if not action or action == "__finish__":
+    if not action or action == FINISH:
         return {"last_tool_result": None}
 
     calls = list(state.get("tool_calls") or _single_call(state, action))
