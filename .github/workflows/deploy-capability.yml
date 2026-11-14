@@ -1,0 +1,102 @@
+name: Deploy Capability to Aliyun ECS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "application/capability/**"
+      - ".github/workflows/deploy-capability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capability-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build deployment images
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            --tag "capability-backend:${GITHUB_SHA}" \
+            application/capability/backend
+          docker build \
+            --tag "capability-frontend:${GITHUB_SHA}" \
+            application/capability/frontend
+          docker save "capability-backend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/backend.tar.gz"
+          docker save "capability-frontend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/frontend.tar.gz"
+          tar -czf "$RUNNER_TEMP/source.tar.gz" -C application capability
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          ALIYUN_SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_PRIVATE_KEY }}
+          ALIYUN_KNOWN_HOSTS: ${{ secrets.ALIYUN_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_SSH_PRIVATE_KEY"
+          test -n "$ALIYUN_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ALIYUN_SSH_PRIVATE_KEY" > "$HOME/.ssh/capability_deploy"
+          chmod 600 "$HOME/.ssh/capability_deploy"
+          printf '%s\n' "$ALIYUN_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload and start services
+        shell: bash
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_SSH_PORT: ${{ vars.ALIYUN_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_HOST"
+          test -n "$ALIYUN_USER"
+          SSH_PORT="${ALIYUN_SSH_PORT:-22}"
+          SSH=(ssh -i "$HOME/.ssh/capability_deploy" -p "$SSH_PORT" -o IdentitiesOnly=yes)
+          SCP=(scp -i "$HOME/.ssh/capability_deploy" -P "$SSH_PORT" -o IdentitiesOnly=yes)
+          TARGET="${ALIYUN_USER}@${ALIYUN_HOST}"
+          PREFIX="capability-${GITHUB_SHA}"
+
+          "${SSH[@]}" "$TARGET" "mkdir -p /opt/capability"
+          "${SCP[@]}" "$RUNNER_TEMP/source.tar.gz" "$TARGET:/tmp/${PREFIX}-source.tar.gz"
+          "${SCP[@]}" "$RUNNER_TEMP/backend.tar.gz" "$TARGET:/tmp/${PREFIX}-backend.tar.gz"
+          "${SCP[@]}" "$RUNNER_TEMP/frontend.tar.gz" "$TARGET:/tmp/${PREFIX}-frontend.tar.gz"
+          "${SSH[@]}" "$TARGET" "bash -s -- '$PREFIX' '$GITHUB_SHA'" <<'REMOTE'
+          set -euo pipefail
+          prefix="$1"
+          image_tag="$2"
+          cd /opt/capability
+          test -f .env || { echo "Missing /opt/capability/.env" >&2; exit 1; }
+          docker network inspect capability-internal >/dev/null 2>&1 || docker network create capability-internal
+          grep -Eq '^CAPABILITY_BIND_ADDRESS=127\.0\.0\.1$' .env || {
+            echo "Set CAPABILITY_BIND_ADDRESS=127.0.0.1 in /opt/capability/.env" >&2
+            exit 1
+          }
+          grep -Eq '^POSTGRES_PASSWORD=.+$' .env || {
+            echo "Set POSTGRES_PASSWORD in /opt/capability/.env" >&2
+            exit 1
+          }
+          grep -Eq '^MCP_AUTH_ENCRYPTION_KEY=.+$' .env || {
+            echo "Set MCP_AUTH_ENCRYPTION_KEY in /opt/capability/.env" >&2
+            exit 1
+          }
+          tar -xzf "/tmp/${prefix}-source.tar.gz" -C /opt/capability --strip-components=1
+          docker load -i "/tmp/${prefix}-backend.tar.gz"
+          docker load -i "/tmp/${prefix}-frontend.tar.gz"
+          CAPABILITY_IMAGE_TAG="$image_tag" docker compose up -d --remove-orphans
+          docker compose ps
+          rm -f "/tmp/${prefix}-source.tar.gz" \
+            "/tmp/${prefix}-backend.tar.gz" \
+            "/tmp/${prefix}-frontend.tar.gz"
+          REMOTE

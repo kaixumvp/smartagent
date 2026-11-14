@@ -70,6 +70,8 @@ all three. Adapters never import `services` — the sub-agent cycle is broken by
 # Run from application/platformagent/backend
 # PowerShell; copy only if you do not already have a configured .env
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker network inspect capability-internal *> $null
+if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
 docker compose up --build -d
 docker compose ps
 ```
@@ -82,8 +84,41 @@ and the API reference at `http://localhost:8000/docs`.
 Before starting, set a strong `JWT_SECRET` and `BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
 Set `DEEPSEEK_API_KEY` to enable LLM calls. To use MCP tools from a separately running
 Capability Registry, set the matching `CAPABILITY_INTEGRATION_KEY` in this `.env` and
-in the Registry, and make its API available on the host at port 8010. The container
-reaches that host service at `http://host.docker.internal:8010`.
+in the Registry. The Compose stacks share the `capability-internal` Docker network; set
+`CAPABILITY_REGISTRY_URL=http://capability-backend:8000` when Capability is running there.
+For a Registry running directly on the host, the container can reach it at
+`http://host.docker.internal:8010`.
+
+## Deploying to Aliyun ECS
+
+The repository workflow `.github/workflows/deploy-platformagent.yml` builds the backend and
+frontend images and deploys them to `/opt/platformagent` over SSH when `main` receives changes
+under `application/platformagent/` or `application/ouroboros/`. Configure the same GitHub
+Actions secrets listed in the [Capability deployment guide](../../capability/README.md#2-configure-github-actions)
+(`ALIYUN_HOST`, `ALIYUN_USER`, `ALIYUN_SSH_PRIVATE_KEY`, and `ALIYUN_KNOWN_HOSTS`); optional
+`ALIYUN_SSH_PORT` is an Actions variable. The deployment account needs Docker access and write
+permission to `/opt/platformagent`.
+
+Before the first deploy, create `/opt/platformagent/platformagent/backend/.env` on the ECS;
+the workflow intentionally does not copy local environment files. Use the settings in
+[`.env.example`](./.env.example) as a template. Set `PLATFORM_BIND_ADDRESS=127.0.0.1`, a random hexadecimal
+`POSTGRES_PASSWORD`, a `JWT_SECRET` with at least 32 characters, and a strong
+`BOOTSTRAP_ADMIN_PASSWORD`. Set the LLM API key if agents should make LLM calls. For
+Capability integration, use `CAPABILITY_REGISTRY_URL=http://capability-backend:8000` and the
+same `CAPABILITY_INTEGRATION_KEY` in both services. Keep the `.env` on the server; the workflow
+does not upload local environment files. Existing database volumes retain their initialized
+PostgreSQL password, so changing `POSTGRES_PASSWORD` requires changing the database role
+password too.
+
+Both Compose stacks publish their ports only on the ECS loopback interface in deployment mode.
+Use an SSH tunnel or an HTTPS reverse proxy with authentication; do not expose the API or
+console ports directly to the Internet. On first startup, Alembic applies database migrations
+and seeds the initial admin account. Change that account's password immediately after logging
+in. Services restart automatically after ECS reboots.
+
+If Capability is also being deployed, run the Capability deployment workflow so its backend
+joins the shared Docker network. Then both backends can reach each other by their Compose
+network aliases without exposing the internal API port on the public interface.
 
 `docker compose down` stops the services and preserves database data. Do not use
 `docker compose down -v` unless you intend to delete the database volume.
@@ -93,6 +128,8 @@ reaches that host service at `http://host.docker.internal:8010`.
 ```bash
 # Run from application/platformagent/backend
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker network inspect capability-internal *> $null
+if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
 docker compose up -d postgres redis
 poetry install
 poetry run alembic upgrade head
