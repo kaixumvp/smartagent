@@ -94,8 +94,8 @@ jobs:
           cd /opt/capability
           test -f .env || { echo "Missing /opt/capability/.env" >&2; exit 1; }
           docker network inspect capability-internal >/dev/null 2>&1 || docker network create capability-internal
-          grep -Eq '^CAPABILITY_BIND_ADDRESS=127\.0\.0\.1$' .env || {
-            echo "Set CAPABILITY_BIND_ADDRESS=127.0.0.1 in /opt/capability/.env" >&2
+          awk -F= '$1 == "CAPABILITY_BIND_ADDRESS" { gsub(/\r/, "", $2); if ($2 == "127.0.0.1" || $2 == "0.0.0.0") ok = 1 } END { exit !ok }' .env || {
+            echo "Set CAPABILITY_BIND_ADDRESS to 127.0.0.1 (private) or 0.0.0.0 (public frontend) in /opt/capability/.env" >&2
             exit 1
           }
           grep -Eq '^POSTGRES_PASSWORD=.+$' .env || {

@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartagent}
       POSTGRES_DB: smartagent
     ports:
-      - "${PLATFORM_BIND_ADDRESS:-0.0.0.0}:5432:5432"
+      - "${PLATFORM_DB_BIND_ADDRESS:-127.0.0.1}:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "${PLATFORM_BIND_ADDRESS:-0.0.0.0}:6379:6379"
+      - "${PLATFORM_REDIS_BIND_ADDRESS:-127.0.0.1}:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -61,7 +61,7 @@ services:
         aliases:
           - platformagent-backend
     ports:
-      - "${PLATFORM_BIND_ADDRESS:-0.0.0.0}:8000:8000"
+      - "${PLATFORM_API_BIND_ADDRESS:-127.0.0.1}:8000:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -85,7 +85,7 @@ services:
       context: ../..
       dockerfile: platformagent/frontend/Dockerfile
     ports:
-      - "${PLATFORM_BIND_ADDRESS:-0.0.0.0}:3000:80"
+      - "${PLATFORM_BIND_ADDRESS:-127.0.0.1}:3000:80"
     depends_on:
       backend:
         condition: service_healthy

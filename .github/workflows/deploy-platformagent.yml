@@ -87,8 +87,8 @@ jobs:
             echo "Missing /opt/platformagent/platformagent/backend/.env; create it from .env.example first" >&2
             exit 1
           }
-          grep -Eq '^PLATFORM_BIND_ADDRESS=127\.0\.0\.1$' "$env_file" || {
-            echo "Set PLATFORM_BIND_ADDRESS=127.0.0.1 in $env_file" >&2
+          grep -Eq '^PLATFORM_BIND_ADDRESS=(127\.0\.0\.1|0\.0\.0\.0)$' "$env_file" || {
+            echo "Set PLATFORM_BIND_ADDRESS to 127.0.0.1 (private) or 0.0.0.0 (public frontend) in $env_file" >&2
             exit 1
           }
           grep -Eq '^POSTGRES_PASSWORD=.+$' "$env_file" || {

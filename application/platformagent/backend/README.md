@@ -116,6 +116,13 @@ console ports directly to the Internet. On first startup, Alembic applies databa
 and seeds the initial admin account. Change that account's password immediately after logging
 in. Services restart automatically after ECS reboots.
 
+To temporarily access the PlatformAgent console directly from the Internet, set
+`PLATFORM_BIND_ADDRESS=0.0.0.0` in the server `.env` and allow inbound TCP port `3000` in the
+ECS security group. This exposes only the frontend port: database, Redis, and backend API remain
+bound to `127.0.0.1` by default. Direct port 3000 uses HTTP; for production, prefer an HTTPS
+reverse proxy on ports 80/443 and keep the app ports private. Never expose ports 5432, 6379,
+or 8000 publicly.
+
 If Capability is also being deployed, run the Capability deployment workflow so its backend
 joins the shared Docker network. Then both backends can reach each other by their Compose
 network aliases without exposing the internal API port on the public interface.

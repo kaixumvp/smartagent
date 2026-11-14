@@ -110,9 +110,15 @@ docker run --rm python:3.11-slim sh -c \
 `MCP_AUTH_ENCRYPTION_KEY`：丢失后，数据库中已保存的 MCP/API 凭据将无法解密。
 若服务器上已有此 Compose 项目的 PostgreSQL 数据卷，修改 `.env` 中的数据库口令不会自动
 更新数据库内的口令；请先同步变更数据库账户口令，或保留原口令。
-`CAPABILITY_BIND_ADDRESS=127.0.0.1` 让服务端口仅监听 ECS 本机；可通过 SSH 隧道访问，
-或在配置 HTTPS 反向代理并加上访问控制后再对外提供服务。当前管理 API **没有用户鉴权**，
-不要直接将 3010/8010 暴露到公网。数据库和 Redis 也不应开放公网访问。
+默认 `CAPABILITY_BIND_ADDRESS=127.0.0.1` 让前端只监听 ECS 本机，可通过 SSH 隧道访问。
+若要从公网打开前端，将其设为 `0.0.0.0` 并在阿里云安全组开放 TCP 3010。Compose 会让
+3010 前端端口对外监听，但 PostgreSQL、Redis 和后端直连端口仍默认只绑定
+`127.0.0.1`；不要开放 5433、6380、8010。
+
+**重要安全风险：当前 Capability 管理 API 没有用户认证。** 前端会代理管理 API，因此
+一旦将 3010 对全网开放，任何人都可能操作工具、Provider 和 Workflow，触发配置的外部
+服务调用。不要在未加认证的情况下对全网开放；至少将阿里云安全组 TCP 3010 来源限制为
+可信 IP。正式公开给所有用户前，先在 HTTPS 反向代理或应用层加认证和访问控制。
 Capability 与 Platform Compose 通过名为 `capability-internal` 的 Docker 网络进行后端互通；
 两个部署工作流都会自动创建该网络。需要接入 Capability 时，首次部署 Platform 前后都可
 触发 Capability 工作流，让两个后端都加入此网络。
@@ -139,7 +145,8 @@ Capability 与 Platform Compose 通过名为 `capability-internal` 的 Docker �
 ssh -L 3010:127.0.0.1:3010 <部署账号>@<ECS 地址>
 ```
 
-然后在本机打开 `http://localhost:3010`。API 健康检查为 `http://localhost:8010/health`。
+然后在本机打开 `http://localhost:3010`。若已配置公开绑定且安全组允许，公网前端地址为
+`http://<ECS公网IP>:3010`。API 健康检查为 `http://localhost:8010/health`。
 
 ## 同步一个 MCP Provider
 
