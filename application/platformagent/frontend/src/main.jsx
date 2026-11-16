@@ -15,6 +15,16 @@ const MD_VIEW_KEY = 'smartagent_md_view';
 // 原文模式即改造前的表现（CSS white-space: pre-wrap 原样回显），格式化模式交给 react-markdown。
 const MD_MODES = { formatted: 'formatted', raw: 'raw' };
 
+function createClientId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
+
 const demoAgents = [
   { id: 'agent_support', name: '客服协作员', version: 'v1.4', status: 'active', model: 'deepseek-chat', runs: 1284, success: 96, accent: 'coral' },
   { id: 'agent_ops', name: '运营分析师', version: 'v2.1', status: 'active', model: 'gpt-4o-mini', runs: 876, success: 92, accent: 'teal' },
@@ -140,7 +150,7 @@ function App() {
     setSelectedAgent(agent);
     setAgentRuns([]);
     const conversationKey = `smartagent_conversation_${agent.id}`;
-    const conversationId = localStorage.getItem(conversationKey) || crypto.randomUUID();
+    const conversationId = localStorage.getItem(conversationKey) || createClientId();
     localStorage.setItem(conversationKey, conversationId);
     setAgentConversationId(conversationId);
     setAgentChatInput('');
@@ -154,8 +164,8 @@ function App() {
         .filter((run) => run.conversation_id === conversationId)
         .reverse()
         .flatMap((run) => [
-          { id: crypto.randomUUID(), role: 'user', content: run.input },
-          ...(run.result ? [{ id: crypto.randomUUID(), role: 'assistant', content: run.result, run }] : []),
+          { id: createClientId(), role: 'user', content: run.input },
+          ...(run.result ? [{ id: createClientId(), role: 'assistant', content: run.result, run }] : []),
         ]));
     } catch (error) {
       setNotice(`加载 Agent 运行记录失败：${error.message}`);
@@ -278,7 +288,7 @@ function App() {
     event?.preventDefault();
     const input = agentChatInput.trim();
     if (!input || !agentDetail || agentChatBusy) return;
-    setAgentChatMessages((messages) => [...messages, { id: crypto.randomUUID(), role: 'user', content: input }]);
+    setAgentChatMessages((messages) => [...messages, { id: createClientId(), role: 'user', content: input }]);
     setAgentChatInput('');
     setAgentChatBusy(true);
     try {
@@ -287,7 +297,7 @@ function App() {
         body: JSON.stringify({ input, stream: false, conversation_id: agentConversationId }),
       });
       setAgentChatMessages((messages) => [...messages, {
-        id: crypto.randomUUID(),
+        id: createClientId(),
         role: 'assistant',
         content: result.result || (result.status === 'awaiting_human' ? '运行正在等待人工审批。' : 'Agent 没有返回文本结果。'),
         run: result,
@@ -306,7 +316,7 @@ function App() {
       setSelectedRun(result);
       setNotice(result.status === 'awaiting_human' ? '运行需要人工审批，详情已显示在对话中' : '试运行已完成');
     } catch (error) {
-      setAgentChatMessages((messages) => [...messages, { id: crypto.randomUUID(), role: 'error', content: error.message }]);
+      setAgentChatMessages((messages) => [...messages, { id: createClientId(), role: 'error', content: error.message }]);
       setNotice(`试运行失败：${error.message}`);
     } finally {
       setAgentChatBusy(false);
