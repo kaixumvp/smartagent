@@ -1,0 +1,356 @@
+.capability-shell {
+  min-height: 100vh;
+  background: #f3f6f8;
+}
+
+.capability-sider {
+  position: sticky !important;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  background: #142b3a !important;
+}
+
+.capability-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 22px 12px 14px;
+}
+
+.capability-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 20px;
+  border-bottom: 1px solid #ffffff18;
+  color: #eef4f6;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.capability-brand > span:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.capability-brand small {
+  color: #91a7b2;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+}
+
+.capability-brand-mark {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border-radius: 9px;
+  color: white;
+  background: #158b83;
+  font-size: 15px;
+}
+
+.capability-workspace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 4px 14px;
+  padding: 9px 8px;
+  border: 1px solid #ffffff17;
+  border-radius: 8px;
+  background: #ffffff08;
+}
+
+.capability-workspace-avatar {
+  flex: 0 0 auto;
+  color: #d3f0e9 !important;
+  background: #287c77 !important;
+}
+
+.capability-workspace > span:last-child,
+.capability-user > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.capability-workspace strong,
+.capability-user strong {
+  overflow: hidden;
+  color: #edf4f5;
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capability-workspace small,
+.capability-user small {
+  overflow: hidden;
+  color: #91a7b2;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capability-menu.ant-menu {
+  flex: 1;
+  border-inline-end: 0;
+  background: transparent;
+  font-size: 11px;
+}
+
+.capability-menu.ant-menu-dark .ant-menu-item-group-title {
+  padding: 14px 11px 7px;
+  color: #78909d;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.capability-menu.ant-menu-dark .ant-menu-item {
+  height: 39px;
+  line-height: 39px;
+  margin: 3px 0;
+  border-radius: 7px;
+}
+
+.capability-menu.ant-menu-dark .ant-menu-item-selected {
+  box-shadow: inset 2px 0 #46c0ac;
+}
+
+.capability-sider-footer {
+  padding: 12px 7px 0;
+  border-top: 1px solid #ffffff18;
+}
+
+.capability-connection {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 4px 12px;
+  color: #b6c8ce;
+  font-size: 9px;
+}
+
+.capability-connection i,
+.capability-top-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #45bd8e;
+}
+
+.capability-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 3px 0;
+}
+
+.capability-user .ant-avatar {
+  color: #19524f;
+  background: #bfe9df;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.capability-user > span {
+  flex: 1;
+}
+
+.capability-user > .anticon {
+  color: #91a7b2;
+  font-size: 13px;
+}
+
+.capability-main {
+  min-width: 0;
+  background: #f3f6f8;
+}
+
+.capability-topbar.ant-layout-header {
+  display: flex;
+  height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  border-bottom: 1px solid #e7edf1;
+  background: #fff;
+  line-height: normal;
+}
+
+.capability-breadcrumb,
+.capability-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #84939d;
+  font-size: 10px;
+}
+
+.capability-breadcrumb .ant-typography {
+  color: #344a59;
+  font-size: 10px;
+}
+
+.capability-top-actions {
+  gap: 18px;
+  color: #71818c;
+  font-size: 13px;
+}
+
+.capability-top-actions .ant-badge {
+  line-height: 1;
+}
+
+.capability-top-actions .ant-avatar {
+  color: #19524f;
+  background: #bfe9df;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.capability-top-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #26866e;
+  font-size: 10px;
+}
+
+.capability-content.ant-layout-content {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 28px 30px 40px;
+}
+
+.capability-content-heading {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 20px;
+}
+
+.capability-content-heading > span {
+  color: #85949c;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.capability-content-heading > strong {
+  color: #172d3d;
+  font-size: 23px;
+  letter-spacing: -0.035em;
+}
+
+.capability-content-heading > small {
+  color: #80909b;
+  font-size: 11px;
+}
+
+.capability-content .ant-card,
+.capability-content .ant-table-wrapper,
+.capability-content .ant-alert,
+.capability-content .ant-collapse {
+  border-color: #e7edf1;
+  border-radius: 9px;
+}
+
+.capability-content .ant-card {
+  box-shadow: 0 8px 26px rgb(22 46 62 / 4%);
+}
+
+.capability-content .ant-card-head {
+  min-height: 52px;
+  border-bottom-color: #edf1f3;
+}
+
+.capability-content .ant-card-head-title {
+  color: #29404f;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.capability-content .ant-table {
+  font-size: 11px;
+}
+
+.capability-content .ant-table-thead > tr > th {
+  color: #71818c;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.capability-content .ant-btn {
+  font-size: 11px;
+}
+
+.capability-content .ant-input,
+.capability-content .ant-select-selector {
+  font-size: 11px;
+}
+
+@media (max-width: 991px) {
+  .capability-sider .ant-layout-sider-children {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .capability-sider.ant-layout-sider-collapsed .capability-brand > span:last-child,
+  .capability-sider.ant-layout-sider-collapsed .capability-workspace > span:last-child,
+  .capability-sider.ant-layout-sider-collapsed .capability-sider-footer > :first-child,
+  .capability-sider.ant-layout-sider-collapsed .capability-user > span,
+  .capability-sider.ant-layout-sider-collapsed .capability-user > .anticon {
+    display: none;
+  }
+
+  .capability-sider.ant-layout-sider-collapsed .capability-brand,
+  .capability-sider.ant-layout-sider-collapsed .capability-workspace,
+  .capability-sider.ant-layout-sider-collapsed .capability-user {
+    justify-content: center;
+  }
+
+  .capability-sider.ant-layout-sider-collapsed .capability-brand,
+  .capability-sider.ant-layout-sider-collapsed .capability-workspace {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .capability-sider.ant-layout-sider-collapsed .capability-sider-footer {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .capability-workspace {
+    justify-content: center;
+    margin-right: 0;
+    margin-left: 0;
+    padding-right: 0;
+    padding-left: 0;
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .capability-topbar.ant-layout-header {
+    height: 50px;
+    padding: 0 13px;
+  }
+
+  .capability-top-status {
+    display: none;
+  }
+
+  .capability-content.ant-layout-content {
+    padding: 20px 12px 28px;
+  }
+
+  .capability-content-heading > strong {
+    font-size: 20px;
+  }
+}

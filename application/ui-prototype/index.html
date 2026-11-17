@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartAgent · UI Prototype</title>
+  <style>
+    :root {
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: #172a3a;
+      background: #f3f6f8;
+      font-synthesis: none;
+      --ink: #172a3a;
+      --muted: #788895;
+      --line: #e7edf1;
+      --panel: #fff;
+      --nav: #142b3a;
+      --nav-muted: #9aadb8;
+      --accent: #158b83;
+      --accent-soft: #e8f5f2;
+      --blue: #4c7fe8;
+      --blue-soft: #edf2ff;
+      --warning: #d89042;
+      --shadow: 0 8px 26px rgb(22 46 62 / 5%);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button { font: inherit; cursor: pointer; }
+    .prototype-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 56px; padding: 0 28px; color: #ecf4f6; background: #0e202d;
+    }
+    .prototype-brand { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+    .brand-mark { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 8px; background: #1c9a8e; color: white; }
+    .prototype-hint { color: #a9bac4; font-size: 11px; }
+    .app-switch { display: flex; gap: 4px; padding: 4px; border: 1px solid #ffffff20; border-radius: 9px; background: #ffffff0a; }
+    .app-switch button { padding: 7px 12px; border: 0; border-radius: 6px; color: #b7c5cc; background: transparent; font-size: 11px; }
+    .app-switch button.active { color: #14313e; background: #fff; font-weight: 700; }
+    .shell { display: flex; min-height: calc(100vh - 56px); }
+    aside {
+      display: flex; width: 228px; flex: 0 0 228px; flex-direction: column;
+      padding: 24px 14px 16px; color: white; background: var(--nav);
+    }
+    .workspace { display: flex; align-items: center; gap: 11px; padding: 0 10px 24px; border-bottom: 1px solid #ffffff16; }
+    .workspace-avatar { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 11px; color: #c9f1e8; background: #267c77; font-size: 13px; font-weight: 700; }
+    .workspace strong { display: block; font-size: 12px; }
+    .workspace small { display: block; margin-top: 4px; color: var(--nav-muted); font-size: 10px; }
+    .nav-label { margin: 24px 10px 9px; color: #78909d; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
+    .nav-item { display: flex; align-items: center; gap: 11px; margin: 2px 0; padding: 10px 11px; border-radius: 7px; color: #b6c5cc; font-size: 11px; }
+    .nav-item .icon { width: 16px; color: #91a7b2; text-align: center; font-size: 14px; }
+    .nav-item.active { color: white; background: #ffffff14; box-shadow: inset 2px 0 #46c0ac; }
+    .nav-item.active .icon { color: #6dd1be; }
+    .nav-count { margin-left: auto; padding: 2px 6px; border-radius: 8px; color: #a7dcd3; background: #ffffff12; font-size: 9px; }
+    .aside-bottom { margin-top: auto; padding: 14px 10px 0; border-top: 1px solid #ffffff16; color: var(--nav-muted); font-size: 10px; }
+    .user-row { display: flex; align-items: center; gap: 9px; margin-top: 13px; color: #eef4f5; font-size: 10px; }
+    .user-avatar { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 50%; color: #19524f; background: #bfe9df; font-weight: 700; }
+    main { flex: 1; min-width: 0; }
+    .topbar { display: flex; height: 58px; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid var(--line); background: #fff; }
+    .breadcrumbs { color: #84939d; font-size: 10px; }
+    .breadcrumbs b { color: #344a59; font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 15px; color: #71818c; font-size: 11px; }
+    .top-status { display: flex; align-items: center; gap: 6px; color: #238a6c; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #34b483; }
+    .page { max-width: 1440px; margin: 0 auto; padding: 31px 34px 40px; }
+    .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 23px; }
+    .eyebrow { margin-bottom: 8px; color: #85949c; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
+    h1 { margin: 0; color: #172d3d; font-size: 23px; letter-spacing: -.035em; }
+    .subheading { margin-top: 7px; color: #80909b; font-size: 11px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 1px solid #dfe7eb; border-radius: 7px; color: #3b5261; background: white; font-size: 10px; font-weight: 600; }
+    .button.primary { border-color: var(--accent); color: white; background: var(--accent); box-shadow: 0 3px 8px #158b8325; }
+    .button.blue { border-color: var(--blue); background: var(--blue); }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 17px; }
+    .metric, .card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: var(--shadow); }
+    .metric { padding: 15px 16px; }
+    .metric-top { display: flex; align-items: center; justify-content: space-between; color: #81919c; font-size: 10px; }
+    .metric-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; color: var(--accent); background: var(--accent-soft); font-size: 13px; }
+    .metric strong { display: block; margin-top: 11px; color: #172d3d; font-size: 23px; letter-spacing: -.04em; }
+    .metric-foot { margin-top: 5px; color: #8a9aa4; font-size: 9px; }
+    .positive { color: #248b6d; font-weight: 600; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(250px, .9fr); gap: 15px; }
+    .card { overflow: hidden; }
+    .card-head { display: flex; min-height: 54px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 17px; border-bottom: 1px solid #edf1f3; }
+    .card-head h2 { margin: 0; color: #29404f; font-size: 12px; }
+    .text-link { border: 0; color: var(--accent); background: transparent; font-size: 10px; }
+    .table { width: 100%; border-collapse: collapse; text-align: left; }
+    .table th { padding: 11px 16px; color: #8797a0; background: #fbfcfd; font-size: 9px; font-weight: 600; }
+    .table td { padding: 12px 16px; border-top: 1px solid #f0f3f5; color: #536775; font-size: 10px; }
+    .agent-name { display: flex; align-items: center; gap: 9px; color: #263d4c; font-weight: 600; }
+    .agent-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; color: #4777d2; background: var(--blue-soft); }
+    .agent-icon.mint { color: #218b7b; background: #e6f5f0; }
+    .agent-icon.amber { color: #b27b32; background: #fbf2df; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 20px; color: #26866e; background: #eaf6f0; font-size: 9px; }
+    .status .dot { width: 5px; height: 5px; }
+    .run-list { padding: 3px 16px; }
+    .run { display: flex; gap: 10px; padding: 13px 0; border-bottom: 1px solid #eef2f4; }
+    .run:last-child { border-bottom: 0; }
+    .run-point { width: 8px; height: 8px; flex: 0 0 8px; margin-top: 4px; border-radius: 50%; background: #42b292; box-shadow: 0 0 0 3px #e8f5f1; }
+    .run-copy { min-width: 0; }
+    .run-copy strong { display: block; overflow: hidden; color: #415765; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .run-copy small { display: block; margin-top: 5px; color: #96a3aa; font-size: 9px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .search { display: flex; width: min(290px, 42vw); align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid #e3eaee; border-radius: 7px; color: #8b9aa3; background: #fff; font-size: 10px; }
+    .catalog-stats { display: flex; gap: 16px; margin-bottom: 16px; }
+    .stat-chip { padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; color: #7e8d97; background: #fff; font-size: 10px; }
+    .stat-chip strong { margin-right: 5px; color: #263d4b; font-size: 15px; }
+    .catalog-table td { padding-top: 13px; padding-bottom: 13px; }
+    .tool-title { display: flex; align-items: center; gap: 10px; color: #304957; font-size: 10px; font-weight: 650; }
+    .tool-symbol { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; color: #4479d6; background: #edf2ff; }
+    .tool-sub { display: block; margin-top: 4px; color: #91a0a9; font-size: 9px; font-weight: 400; }
+    .tag { display: inline-block; padding: 4px 7px; border-radius: 5px; color: #5973a4; background: #eff3fb; font-size: 9px; }
+    .tag.mcp { color: #218b7b; background: #e9f5f1; }
+    .tag.workflow { color: #9a6d32; background: #fbf3e5; }
+    .row-actions { color: #6c7f8a; font-size: 10px; }
+    .page-switch { display: none; }
+    @media (max-width: 900px) {
+      aside { width: 190px; flex-basis: 190px; }
+      .page { padding: 24px 20px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 620px) {
+      .prototype-bar { flex-wrap: wrap; gap: 9px; padding: 10px 14px; }
+      .prototype-hint { display: none; }
+      .shell { min-height: calc(100vh - 58px); }
+      aside { width: 54px; flex-basis: 54px; align-items: center; padding: 16px 6px; }
+      .workspace { padding: 0 0 15px; border: 0; }
+      .workspace > div:last-child, .nav-label, .nav-item span:not(.icon), .aside-bottom { display: none; }
+      .nav-item { justify-content: center; width: 39px; padding: 11px 0; }
+      .nav-item .icon { width: auto; font-size: 16px; }
+      .topbar { height: 48px; padding: 0 13px; }
+      .top-actions > span:not(.top-status) { display: none; }
+      .page { padding: 20px 12px; }
+      .page-heading { align-items: center; }
+      h1 { font-size: 19px; }
+      .metrics { gap: 8px; }
+      .metric { padding: 11px; }
+      .metric strong { font-size: 19px; }
+      .catalog-stats { gap: 6px; overflow-x: auto; }
+      .stat-chip { flex: 0 0 auto; padding: 8px; }
+      .table th, .table td { padding-right: 9px; padding-left: 9px; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="prototype-bar">
+    <div class="prototype-brand"><span class="brand-mark">✦</span> SMARTAGENT <span style="color:#6e8794;font-weight:400">/ UI CONCEPT</span></div>
+    <div class="prototype-hint">统一 React + Vite + Ant Design 5 · 高保真静态原型 · 点击切换应用</div>
+    <div class="app-switch" role="tablist" aria-label="切换产品原型">
+      <button id="platform-tab" class="active" type="button" onclick="showApp('platform')">PlatformAgent</button>
+      <button id="capability-tab" type="button" onclick="showApp('capability')">Capability</button>
+    </div>
+  </div>
+  <div id="platform" class="shell">
+    <aside>
+      <div class="workspace"><div class="workspace-avatar">S</div><div><strong>SmartAgent</strong><small>Platform Console⌄</small></div></div>
+      <div class="nav-label">WORKSPACE</div>
+      <div class="nav-item active"><span class="icon">◫</span><span>总览</span></div>
+      <div class="nav-item"><span class="icon">✦</span><span>Agents</span><span class="nav-count">12</span></div>
+      <div class="nav-item"><span class="icon">◷</span><span>运行记录</span></div>
+      <div class="nav-item"><span class="icon">▦</span><span>Tools & Skills</span></div>
+      <div class="nav-label">MANAGEMENT</div>
+      <div class="nav-item"><span class="icon">♙</span><span>用户与权限</span></div>
+      <div class="nav-item"><span class="icon">◉</span><span>评测与实验</span></div>
+      <div class="nav-item"><span class="icon">＄</span><span>成本分析</span></div>
+      <div class="aside-bottom">WORKSPACE<br><div class="user-row"><div class="user-avatar">A</div><span>管理员<br><small style="color:#91a5af">admin@smartagent</small></span><span style="margin-left:auto">···</span></div></div>
+    </aside>
+    <main>
+      <div class="topbar"><div class="breadcrumbs">工作区　/　<b>总览</b></div><div class="top-actions"><span class="top-status"><i class="dot"></i>系统运行正常</span><span>⌕</span><span>◷</span><span>帮助</span></div></div>
+      <div class="page">
+        <div class="page-heading"><div><div class="eyebrow">MONDAY, NOVEMBER 16</div><h1>工作台总览</h1><div class="subheading">查看 Agent 运行状态、调用情况与近期活动。</div></div><button class="button primary">＋ 新建 Agent</button></div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-top">活跃 Agents <span class="metric-icon">✦</span></div><strong>12</strong><div class="metric-foot"><span class="positive">↑ 2</span> 较上周</div></div>
+          <div class="metric"><div class="metric-top">近 7 天运行 <span class="metric-icon" style="color:#4c7fe8;background:#edf2ff">◷</span></div><strong>1,284</strong><div class="metric-foot"><span class="positive">↑ 18.6%</span> 较上周</div></div>
+          <div class="metric"><div class="metric-top">任务成功率 <span class="metric-icon" style="color:#9a6d32;background:#fbf2df">✓</span></div><strong>96.8%</strong><div class="metric-foot"><span class="positive">↑ 2.4%</span> 较上周</div></div>
+          <div class="metric"><div class="metric-top">本月模型成本 <span class="metric-icon" style="color:#8067c7;background:#f1edfc">＄</span></div><strong>$42.80</strong><div class="metric-foot">共 2.4M tokens</div></div>
+        </div>
+        <div class="dashboard-grid">
+          <section class="card">
+            <div class="card-head"><h2>常用 Agents</h2><button class="text-link">查看全部　→</button></div>
+            <table class="table">
+              <thead><tr><th>AGENT</th><th>状态</th><th>模型</th><th>运行次数</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="agent-name"><span class="agent-icon">✧</span>客服协作员</div></td><td><span class="status"><i class="dot"></i>运行中</span></td><td>Qwen Plus</td><td>428</td><td>···</td></tr>
+                <tr><td><div class="agent-name"><span class="agent-icon mint">⌕</span>研究助理</div></td><td><span class="status"><i class="dot"></i>运行中</span></td><td>Qwen Max</td><td>316</td><td>···</td></tr>
+                <tr><td><div class="agent-name"><span class="agent-icon amber">▤</span>运营分析师</div></td><td><span class="status"><i class="dot" style="background:#d9a14c"></i>待审批</span></td><td>DeepSeek V3</td><td>205</td><td>···</td></tr>
+                <tr><td><div class="agent-name"><span class="agent-icon">⌘</span>代码审查员</div></td><td><span class="status"><i class="dot"></i>运行中</span></td><td>Qwen Coder</td><td>128</td><td>···</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h2>最近运行</h2><button class="text-link">全部记录　→</button></div>
+            <div class="run-list">
+              <div class="run"><i class="run-point"></i><div class="run-copy"><strong>整理本周退款政策变化</strong><small>客服协作员 · 2 分钟前 · 已完成</small></div></div>
+              <div class="run"><i class="run-point"></i><div class="run-copy"><strong>总结最新行业调研报告</strong><small>研究助理 · 16 分钟前 · 已完成</small></div></div>
+              <div class="run"><i class="run-point" style="background:#daa148;box-shadow:0 0 0 3px #fbf2df"></i><div class="run-copy"><strong>分析 Q3 转化漏斗</strong><small>运营分析师 · 28 分钟前 · 待审批</small></div></div>
+              <div class="run"><i class="run-point"></i><div class="run-copy"><strong>检查最新提交的代码变更</strong><small>代码审查员 · 1 小时前 · 已完成</small></div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div id="capability" class="shell" style="display:none">
+    <aside>
+      <div class="workspace"><div class="workspace-avatar" style="background:#4474ca">C</div><div><strong>SmartAgent</strong><small>Capability Hub⌄</small></div></div>
+      <div class="nav-label">CAPABILITY</div>
+      <div class="nav-item active"><span class="icon">▦</span><span>Tool Catalog</span></div>
+      <div class="nav-item"><span class="icon">⌘</span><span>MCP Providers</span><span class="nav-count">8</span></div>
+      <div class="nav-item"><span class="icon">↗</span><span>API Services</span></div>
+      <div class="nav-item"><span class="icon">⌘</span><span>API Tools</span></div>
+      <div class="nav-item"><span class="icon">◇</span><span>Workflows</span></div>
+      <div class="nav-item"><span class="icon">☷</span><span>待办中心</span><span class="nav-count">3</span></div>
+      <div class="nav-label">SYSTEM</div>
+      <div class="nav-item"><span class="icon">⚙</span><span>设置</span></div>
+      <div class="aside-bottom">WORKSPACE<br><div class="user-row"><div class="user-avatar" style="color:#294c84;background:#c9d9fb">A</div><span>管理员<br><small style="color:#91a5af">Capability Admin</small></span><span style="margin-left:auto">···</span></div></div>
+    </aside>
+    <main>
+      <div class="topbar"><div class="breadcrumbs">Capability　/　<b>Tool Catalog</b></div><div class="top-actions"><span class="top-status"><i class="dot"></i>Registry 已连接</span><span>⌕</span><span>◷</span><span>帮助</span></div></div>
+      <div class="page">
+        <div class="page-heading"><div><div class="eyebrow">TOOLS & INTEGRATIONS</div><h1>Tool Catalog</h1><div class="subheading">统一管理 Agent 可调用的工具、服务连接与工作流。</div></div><button class="button primary blue">＋ 创建 Tool</button></div>
+        <div class="catalog-stats">
+          <div class="stat-chip"><strong>36</strong>全部 Tools</div><div class="stat-chip"><strong>28</strong>已启用</div><div class="stat-chip"><strong>8</strong>MCP Providers</div><div class="stat-chip"><strong>3</strong>Workflows</div>
+        </div>
+        <section class="card">
+          <div class="card-head"><div class="toolbar"><div class="search">⌕　搜索 Tool 名称、描述或服务…</div><button class="button">类型　⌄</button><button class="button">状态　⌄</button></div><button class="button">筛选</button></div>
+          <table class="table catalog-table">
+            <thead><tr><th>TOOL</th><th>类型</th><th class="hide-mobile">所属服务</th><th>状态</th><th class="hide-mobile">最近更新</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="tool-title"><span class="tool-symbol">⌕</span><span>web_search<small class="tool-sub">在互联网上搜索并返回相关结果</small></span></div></td><td><span class="tag mcp">MCP Tool</span></td><td class="hide-mobile">DeepWiki</td><td><span class="status"><i class="dot"></i>已启用</span></td><td class="hide-mobile">今天 10:42</td><td class="row-actions">···</td></tr>
+              <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#218b7b;background:#e8f5f2">▤</span><span>get_repository<small class="tool-sub">获取代码仓库与目录结构信息</small></span></div></td><td><span class="tag mcp">MCP Tool</span></td><td class="hide-mobile">DeepWiki</td><td><span class="status"><i class="dot"></i>已启用</span></td><td class="hide-mobile">今天 10:42</td><td class="row-actions">···</td></tr>
+              <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b47a2c;background:#fbf2df">⇧</span><span>create_issue<small class="tool-sub">在指定项目中创建新的 Issue</small></span></div></td><td><span class="tag mcp">MCP Tool</span></td><td class="hide-mobile">GitHub</td><td><span class="status"><i class="dot"></i>已启用</span></td><td class="hide-mobile">昨天 17:20</td><td class="row-actions">···</td></tr>
+              <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#8067c7;background:#f1edfc">◇</span><span>日报生成流程<small class="tool-sub">聚合数据、生成并发送每日摘要</small></span></div></td><td><span class="tag workflow">Workflow</span></td><td class="hide-mobile">Capability Workflow</td><td><span class="status"><i class="dot"></i>已发布</span></td><td class="hide-mobile">昨天 15:06</td><td class="row-actions">···</td></tr>
+              <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#4c7fe8;background:#edf2ff">▧</span><span>get_weather<small class="tool-sub">查询指定城市当前天气</small></span></div></td><td><span class="tag">API Tool</span></td><td class="hide-mobile">Weather API</td><td><span class="status"><i class="dot"></i>已启用</span></td><td class="hide-mobile">11 月 14 日</td><td class="row-actions">···</td></tr>
+            </tbody>
+          </table>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-top:1px solid #edf1f3;color:#8797a0;font-size:9px"><span>共 36 项　·　每页显示 10 项</span><span style="word-spacing:8px">‹　1　2　3　4　›</span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    function showApp(which) {
+      document.getElementById('platform').style.display = which === 'platform' ? 'flex' : 'none';
+      document.getElementById('capability').style.display = which === 'capability' ? 'flex' : 'none';
+      document.getElementById('platform-tab').classList.toggle('active', which === 'platform');
+      document.getElementById('capability-tab').classList.toggle('active', which === 'capability');
+    }
+  </script>
+</body>
+</html>

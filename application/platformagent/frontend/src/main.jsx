@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ConfigProvider } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -1301,4 +1302,25 @@ function RunResultPanel({ run, mdMode = MD_MODES.formatted, onClose, className =
 }
 function EmptyState({ active }) { const names = { evals: ['EVALUATION LAB', '评测与实验', '在这里比较 Agent 版本，追踪质量和成本。'], tools: ['PLUGIN REGISTRY', '工具与技能', '连接工具、技能和外部服务。'], memory: ['LONG-TERM MEMORY', '记忆库', '查看和检索 Agent 的长期语义记忆。'], iam: ['ACCESS CONTROL', '权限管理', '管理角色、授权和高风险操作审批。'] }; const [kicker, title, desc] = names[active]; return <section className="empty-state"><div className="empty-orbit"><Sparkles size={28} /></div><span className="section-kicker">{kicker}</span><h1>{title}</h1><p>{desc}</p><button className="primary-btn"><Plus size={16} />开始配置</button></section> }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <ConfigProvider
+    theme={{
+      token: {
+        colorPrimary: '#158b83',
+        colorInfo: '#158b83',
+        colorSuccess: '#26866e',
+        colorWarning: '#d89042',
+        colorError: '#d75d5d',
+        colorBgLayout: '#f3f6f8',
+        colorBgContainer: '#ffffff',
+        colorBorder: '#e7edf1',
+        colorText: '#29404f',
+        colorTextSecondary: '#788895',
+        borderRadius: 8,
+        fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif',
+      },
+    }}
+  >
+    <App />
+  </ConfigProvider>,
+);
