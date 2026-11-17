@@ -357,6 +357,9 @@ body { background: #f3f6f8; color: #29404f; }
 .md-body pre code { color: #344d59; }
 .md-body th { background: #f6f8f9; }
 .notice { background: #174e49; box-shadow: 0 8px 25px rgb(22 46 62 / 18%); }
+.run-history-actions { display: flex; align-items: center; gap: 12px; }
+.run-history-actions > label { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.run-history-actions .ant-select { width: 220px; }
 .evaluation-lab { display: grid; gap: 16px; }
 .eval-panel { min-width: 0; }
 .eval-description { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
@@ -423,4 +426,6 @@ body { background: #f3f6f8; color: #29404f; }
   .eval-tabs-spacer { display: none; }
   .eval-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
   .eval-row > :nth-child(3), .eval-row > :nth-child(4) { text-align: right; }
+  .run-history-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .run-history-actions .ant-select { width: 170px; }
 }

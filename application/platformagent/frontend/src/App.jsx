@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Select } from 'antd';
 import {
   Activity, ArrowUpRight, Bot, Check, ChevronDown, CircleDollarSign,
   Clock3, Command, Database, Gauge, KeyRound, LayoutDashboard,
@@ -38,6 +39,7 @@ export default function App() {
   const [agents, setAgents] = useState(demoAgents);
   const [runs, setRuns] = useState([]);
   const [runsLoading, setRunsLoading] = useState(false);
+  const [runAgentFilter, setRunAgentFilter] = useState('all');
   const [selectedAgent, setSelectedAgent] = useState(demoAgents[0]);
   const [task, setTask] = useState('');
   const [overviewRun, setOverviewRun] = useState(null);
@@ -93,6 +95,18 @@ export default function App() {
   const [agentDeleting, setAgentDeleting] = useState(false);
   const [deletingRunId, setDeletingRunId] = useState('');
   const [selectedRun, setSelectedRun] = useState(null);
+  const runAgentOptions = [
+    { value: 'all', label: '所有 Agent' },
+    ...Array.from(new Map([
+      ...agents.map((agent) => [agent.id, { value: agent.id, label: agent.name }]),
+      ...runs
+        .filter((run) => run.agent_id)
+        .map((run) => [run.agent_id, { value: run.agent_id, label: run.agent || run.agent_id }]),
+    ]).values()),
+  ];
+  const filteredRuns = runAgentFilter === 'all'
+    ? runs
+    : runs.filter((run) => run.agent_id === runAgentFilter);
 
   useEffect(() => { localStorage.setItem(MD_VIEW_KEY, mdMode); }, [mdMode]);
 
@@ -308,6 +322,7 @@ export default function App() {
       setAgentRuns((items) => [result, ...items.filter((run) => run.run_id !== result.run_id)].slice(0, 20));
       setRuns((items) => [{
         id: result.run_id,
+        agent_id: agentDetail.id,
         agent: agentDetail.name,
         task: input,
         status: result.status,
@@ -365,7 +380,7 @@ export default function App() {
     if (!selectedAgent?.id) { setNotice('请先创建 Agent'); return; }
     setLoading(true);
     setOverviewRun(null);
-    const optimistic = { id: `run_demo_${Date.now()}`, agent: selectedAgent.name, task, status: 'running', time: '刚刚', cost: '计算中' };
+    const optimistic = { id: `run_demo_${Date.now()}`, agent_id: selectedAgent.id, agent: selectedAgent.name, task, status: 'running', time: '刚刚', cost: '计算中' };
     setRuns((items) => [optimistic, ...items]);
     try {
       const result = await api(`/agents/${selectedAgent.id}/runs`, { method: 'POST', body: JSON.stringify({ input: task, stream: false }) });
@@ -672,7 +687,7 @@ export default function App() {
             onSelectRun={setSelectedRun}
           />
         )}
-        {active === 'runs' && <section className="panel full-panel"><div className="panel-header"><div><span className="section-kicker">RUN HISTORY</span><h2>运行记录</h2></div><button className="secondary-btn" onClick={() => loadRuns()} disabled={runsLoading}>{runsLoading ? <RefreshCw className="spin" size={15} /> : <RefreshCw size={15} />}{runsLoading ? '加载中' : '刷新'}</button></div><RunTable runs={runs} onApprove={approve} onSelect={setSelectedRun} detailed loading={runsLoading} />{selectedRun && <RunResultPanel run={selectedRun} mdMode={mdMode} onClose={() => setSelectedRun(null)} />}</section>}
+        {active === 'runs' && <section className="panel full-panel"><div className="panel-header"><div><span className="section-kicker">RUN HISTORY</span><h2>运行记录</h2></div><div className="run-history-actions"><label htmlFor="run-agent-filter">所属 Agent</label><Select id="run-agent-filter" aria-label="按所属 Agent 筛选运行记录" value={runAgentFilter} options={runAgentOptions} showSearch optionFilterProp="label" onChange={setRunAgentFilter} /><button className="secondary-btn" onClick={() => loadRuns()} disabled={runsLoading}>{runsLoading ? <RefreshCw className="spin" size={15} /> : <RefreshCw size={15} />}{runsLoading ? '加载中' : '刷新'}</button></div></div><RunTable runs={filteredRuns} onApprove={approve} onSelect={setSelectedRun} detailed loading={runsLoading} emptyMessage={runAgentFilter === 'all' ? undefined : '该 Agent 暂无运行记录。'} />{selectedRun && <RunResultPanel run={selectedRun} mdMode={mdMode} onClose={() => setSelectedRun(null)} />}</section>}
         {active === 'tools' && (
           <section className="panel full-panel">
             <div className="panel-header">
@@ -901,9 +916,9 @@ function Login({ onLogin }) {
 }
 function NavItem({ icon, label, active, onClick, badge }) { return <button className={`nav-item ${active ? 'active' : ''}`} onClick={onClick}>{icon}<span>{label}</span>{badge && <b>{badge}</b>}</button> }
 function Metric({ icon, label, value, delta, tone }) { return <div className="metric"><div className={`metric-icon ${tone}`}>{icon}</div><div className="metric-copy"><span>{label}</span><strong>{value}</strong><small className={delta.startsWith('-') ? 'positive' : ''}>{delta}</small></div><div className="metric-spark">▰▂▅▃▇▆▂</div></div> }
-function RunTable({ runs, onApprove, onSelect, detailed, loading }) {
+function RunTable({ runs, onApprove, onSelect, detailed, loading, emptyMessage }) {
   if (runs.length === 0) {
-    return <div className="run-history-empty">{loading ? '正在加载运行记录…' : '还没有运行记录。运行 Agent 后，记录会显示在这里。'}</div>;
+    return <div className="run-history-empty">{loading ? '正在加载运行记录…' : emptyMessage || '还没有运行记录。运行 Agent 后，记录会显示在这里。'}</div>;
   }
   return <div className="run-table">
     <div className="table-head"><span>任务 / Agent</span><span>状态</span><span>时间</span><span>成本</span>{detailed && <span />}</div>
