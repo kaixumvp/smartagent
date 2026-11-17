@@ -28,7 +28,7 @@ services:
       retries: 10
 
   migrate:
-    image: platformagent-backend:${PLATFORM_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local}/platformagent-backend:${PLATFORM_IMAGE_TAG:-latest}
     build:
       context: ../..
       dockerfile: platformagent/backend/Dockerfile
@@ -43,7 +43,7 @@ services:
     restart: "no"
 
   backend:
-    image: platformagent-backend:${PLATFORM_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local}/platformagent-backend:${PLATFORM_IMAGE_TAG:-latest}
     build:
       context: ../..
       dockerfile: platformagent/backend/Dockerfile
@@ -80,7 +80,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: platformagent-frontend:${PLATFORM_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local}/platformagent-frontend:${PLATFORM_IMAGE_TAG:-latest}
     build:
       context: ../..
       dockerfile: platformagent/frontend/Dockerfile

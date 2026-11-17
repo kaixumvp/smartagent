@@ -99,8 +99,11 @@ with target `all` for the first deployment; later manual runs can target either 
 Configure the GitHub Actions secrets listed in the
 [Capability deployment guide](../../capability/README.md#2-configure-github-actions)
 (`ALIYUN_HOST`, `ALIYUN_USER`, `ALIYUN_SSH_PRIVATE_KEY`, and `ALIYUN_KNOWN_HOSTS`); optional
-`ALIYUN_SSH_PORT` is an Actions variable. The deployment account needs Docker access and write
-permission to `/opt/platformagent` and `/opt/capability`.
+`ALIYUN_SSH_PORT` is an Actions variable. Also configure `ACR_REGISTRY` as an Actions variable
+and the four ACR credentials listed in that guide. Actions builds and pushes commit-SHA-tagged
+images to ACR; ECS logs in with the read-only credential, pulls the images, and starts Compose
+without building. The deployment account needs Docker access and write permission to
+`/opt/platformagent` and `/opt/capability`.
 
 Before the first deploy, create `/opt/platformagent/platformagent/backend/.env` on the ECS;
 the workflow intentionally does not copy local environment files. Use the settings in

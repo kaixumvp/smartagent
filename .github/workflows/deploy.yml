@@ -88,35 +88,52 @@ jobs:
           echo "PlatformAgent deployment: $platform"
           echo "Capability deployment: $capability"
 
-      - name: Build changed application images
+      - name: Log in to Aliyun Container Registry
         if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true'
         shell: bash
         env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ACR_REGISTRY" || { echo "Set the ACR_REGISTRY Actions variable" >&2; exit 1; }
+          test -n "$ACR_USERNAME" || { echo "Set the ACR_USERNAME Actions secret" >&2; exit 1; }
+          test -n "$ACR_PASSWORD" || { echo "Set the ACR_PASSWORD Actions secret" >&2; exit 1; }
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>" >&2
+            exit 1
+          }
+          ACR_HOST="${ACR_REGISTRY%%/*}"
+          printf '%s' "$ACR_PASSWORD" | docker login "$ACR_HOST" \
+            --username "$ACR_USERNAME" \
+            --password-stdin
+
+      - name: Build and push changed application images
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true'
+        shell: bash
+        env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
           PLATFORM_CHANGED: ${{ steps.targets.outputs.platform }}
           CAPABILITY_CHANGED: ${{ steps.targets.outputs.capability }}
         run: |
           set -euo pipefail
-
           if [[ "$PLATFORM_CHANGED" == "true" ]]; then
-            PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
+            ACR_REGISTRY="$ACR_REGISTRY" PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
               --file application/platformagent/backend/docker-compose.yml \
               build backend frontend
-            docker save "platformagent-backend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/platformagent-backend.tar.gz"
-            docker save "platformagent-frontend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/platformagent-frontend.tar.gz"
-            tar --exclude='platformagent/backend/.env' \
-              -czf "$RUNNER_TEMP/platformagent-source.tar.gz" \
-              -C application platformagent ouroboros
+            ACR_REGISTRY="$ACR_REGISTRY" PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/platformagent/backend/docker-compose.yml \
+              push backend frontend
           fi
 
           if [[ "$CAPABILITY_CHANGED" == "true" ]]; then
-            CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
+            ACR_REGISTRY="$ACR_REGISTRY" CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
               --file application/capability/docker-compose.yml \
               build backend frontend
-            docker save "capability-backend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/capability-backend.tar.gz"
-            docker save "capability-frontend:${GITHUB_SHA}" | gzip > "$RUNNER_TEMP/capability-frontend.tar.gz"
-            tar --exclude='capability/.env' \
-              -czf "$RUNNER_TEMP/capability-source.tar.gz" \
-              -C application capability
+            ACR_REGISTRY="$ACR_REGISTRY" CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/capability/docker-compose.yml \
+              push backend frontend
           fi
 
       - name: Configure SSH
@@ -140,6 +157,9 @@ jobs:
         timeout-minutes: 35
         shell: bash
         env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          ACR_PULL_USERNAME: ${{ secrets.ACR_PULL_USERNAME }}
+          ACR_PULL_PASSWORD: ${{ secrets.ACR_PULL_PASSWORD }}
           ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
           ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
           ALIYUN_SSH_PORT: ${{ vars.ALIYUN_SSH_PORT }}
@@ -149,34 +169,41 @@ jobs:
           set -euo pipefail
           test -n "$ALIYUN_HOST"
           test -n "$ALIYUN_USER"
+          test -n "$ACR_PULL_USERNAME"
+          test -n "$ACR_PULL_PASSWORD"
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>" >&2
+            exit 1
+          }
+          ACR_HOST="${ACR_REGISTRY%%/*}"
           SSH_PORT="${ALIYUN_SSH_PORT:-22}"
           SSH=(ssh -i "$HOME/.ssh/smartagent_deploy" -p "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
           SCP=(scp -i "$HOME/.ssh/smartagent_deploy" -P "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
           TARGET="${ALIYUN_USER}@${ALIYUN_HOST}"
-          PREFIX="smartagent-${GITHUB_SHA}"
 
-          "${SSH[@]}" "$TARGET" "mkdir -p /opt/platformagent /opt/capability"
+          printf '%s' "$ACR_PULL_PASSWORD" | "${SSH[@]}" "$TARGET" \
+            "docker login '$ACR_HOST' --username $(printf '%q' "$ACR_PULL_USERNAME") --password-stdin"
+          "${SSH[@]}" "$TARGET" "mkdir -p /opt/platformagent/platformagent/backend /opt/capability"
 
           if [[ "$DEPLOY_PLATFORM" == "true" ]]; then
-            echo "Uploading PlatformAgent source and images"
-            "${SCP[@]}" "$RUNNER_TEMP/platformagent-source.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-source.tar.gz"
-            "${SCP[@]}" "$RUNNER_TEMP/platformagent-backend.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-backend.tar.gz"
-            "${SCP[@]}" "$RUNNER_TEMP/platformagent-frontend.tar.gz" "$TARGET:/tmp/${PREFIX}-platform-frontend.tar.gz"
+            echo "Uploading PlatformAgent Compose configuration"
+            "${SCP[@]}" application/platformagent/backend/docker-compose.yml \
+              "$TARGET:/opt/platformagent/platformagent/backend/docker-compose.yml"
           fi
 
           if [[ "$DEPLOY_CAPABILITY" == "true" ]]; then
-            echo "Uploading Capability source and images"
-            "${SCP[@]}" "$RUNNER_TEMP/capability-source.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-source.tar.gz"
-            "${SCP[@]}" "$RUNNER_TEMP/capability-backend.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-backend.tar.gz"
-            "${SCP[@]}" "$RUNNER_TEMP/capability-frontend.tar.gz" "$TARGET:/tmp/${PREFIX}-capability-frontend.tar.gz"
+            echo "Uploading Capability Compose configuration"
+            "${SCP[@]}" application/capability/docker-compose.yml \
+              "$TARGET:/opt/capability/docker-compose.yml"
           fi
 
-          "${SSH[@]}" "$TARGET" "bash -s -- '$PREFIX' '$GITHUB_SHA' '$DEPLOY_PLATFORM' '$DEPLOY_CAPABILITY'" <<'REMOTE'
+          printf -v REMOTE_ARGS '%q ' "$GITHUB_SHA" "$DEPLOY_PLATFORM" "$DEPLOY_CAPABILITY" "$ACR_REGISTRY"
+          "${SSH[@]}" "$TARGET" "bash -s -- $REMOTE_ARGS" <<'REMOTE'
           set -euo pipefail
-          prefix="$1"
-          image_tag="$2"
-          deploy_platform="$3"
-          deploy_capability="$4"
+          image_tag="$1"
+          deploy_platform="$2"
+          deploy_capability="$3"
+          acr_registry="$4"
           platform_dir="/opt/platformagent"
           capability_dir="/opt/capability"
           platform_compose="${platform_dir}/platformagent/backend/docker-compose.yml"
@@ -211,13 +238,14 @@ jobs:
               echo "Set MCP_AUTH_ENCRYPTION_KEY in ${capability_dir}/.env" >&2
               exit 1
             }
-            tar -xzf "/tmp/${prefix}-capability-source.tar.gz" -C "$capability_dir" --strip-components=1
-            docker load -i "/tmp/${prefix}-capability-backend.tar.gz"
-            docker load -i "/tmp/${prefix}-capability-frontend.tar.gz"
-            CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
+            ACR_REGISTRY="$acr_registry" CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
               --project-directory "$capability_dir" \
               --file "$capability_compose" \
-              up -d --remove-orphans
+              pull backend frontend
+            ACR_REGISTRY="$acr_registry" CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "$capability_dir" \
+              --file "$capability_compose" \
+              up -d --no-build --remove-orphans
             docker compose --project-directory "$capability_dir" --file "$capability_compose" ps
           fi
 
@@ -247,15 +275,15 @@ jobs:
               echo "Set CAPABILITY_REGISTRY_URL=http://capability-backend:8000 in ${platform_env}" >&2
               exit 1
             }
-            tar -xzf "/tmp/${prefix}-platform-source.tar.gz" -C "$platform_dir"
-            docker load -i "/tmp/${prefix}-platform-backend.tar.gz"
-            docker load -i "/tmp/${prefix}-platform-frontend.tar.gz"
-            PLATFORM_IMAGE_TAG="$image_tag" docker compose \
+            ACR_REGISTRY="$acr_registry" PLATFORM_IMAGE_TAG="$image_tag" docker compose \
               --project-directory "${platform_dir}/platformagent/backend" \
               --file "$platform_compose" \
-              up -d --remove-orphans
+              pull migrate backend frontend
+            ACR_REGISTRY="$acr_registry" PLATFORM_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "${platform_dir}/platformagent/backend" \
+              --file "$platform_compose" \
+              up -d --no-build --remove-orphans
             docker compose --project-directory "${platform_dir}/platformagent/backend" --file "$platform_compose" ps
           fi
 
-          rm -f /tmp/"${prefix}"-*.tar.gz
           REMOTE
