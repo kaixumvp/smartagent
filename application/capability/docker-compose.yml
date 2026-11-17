@@ -19,7 +19,7 @@ services:
       retries: 10
 
   backend:
-    image: ${ACR_REGISTRY:-local}/capability-backend:${CAPABILITY_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local/smartagent}:${CAPABILITY_IMAGE_TAG:-latest}-capability-backend
     build: ./backend
     restart: unless-stopped
     environment:
@@ -50,7 +50,7 @@ services:
       - "${CAPABILITY_REDIS_BIND_ADDRESS:-127.0.0.1}:6380:6379"
 
   frontend:
-    image: ${ACR_REGISTRY:-local}/capability-frontend:${CAPABILITY_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local/smartagent}:${CAPABILITY_IMAGE_TAG:-latest}-capability-frontend
     build: ./frontend
     restart: unless-stopped
     ports:

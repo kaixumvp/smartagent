@@ -100,8 +100,8 @@ jobs:
           test -n "$ACR_REGISTRY" || { echo "Set the ACR_REGISTRY Actions variable" >&2; exit 1; }
           test -n "$ACR_USERNAME" || { echo "Set the ACR_USERNAME Actions secret" >&2; exit 1; }
           test -n "$ACR_PASSWORD" || { echo "Set the ACR_PASSWORD Actions secret" >&2; exit 1; }
-          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*$ ]] || {
-            echo "ACR_REGISTRY must be <registry-host>/<namespace>" >&2
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>/<repository>" >&2
             exit 1
           }
           ACR_HOST="${ACR_REGISTRY%%/*}"
@@ -171,8 +171,8 @@ jobs:
           test -n "$ALIYUN_USER"
           test -n "$ACR_PULL_USERNAME"
           test -n "$ACR_PULL_PASSWORD"
-          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*$ ]] || {
-            echo "ACR_REGISTRY must be <registry-host>/<namespace>" >&2
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>/<repository>" >&2
             exit 1
           }
           ACR_HOST="${ACR_REGISTRY%%/*}"

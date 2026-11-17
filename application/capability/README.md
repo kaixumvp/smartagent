@@ -141,12 +141,13 @@ Workflow，触发配置的外部服务调用。HTTPS 不能替代认证；建议
 `ALIYUN_KNOWN_HOSTS` 应通过可信渠道核验 ECS 的 SSH host key 指纹后再录入，不要仅凭
 未经核验的 `ssh-keyscan` 输出信任服务器。Workflow 默认连接 SSH 22 端口并部署到
 `/opt/capability`；如需更改端口，添加 Actions variable `ALIYUN_SSH_PORT`。
-同时添加 Actions variable `ACR_REGISTRY`，值为 ACR 登录地址和命名空间，例如
-`registry.cn-hangzhou.aliyuncs.com/my-namespace`（不要附带协议、镜像名或 tag）。
-在 ACR 中预先创建 `platformagent-backend`、`platformagent-frontend`、
-`capability-backend` 和 `capability-frontend` 四个镜像仓库，并给推送账号写权限、只读账号
-拉取权限。工作流使用 Git commit SHA 作为镜像 tag；ECS 部署时会通过只读账号登录 ACR，
-拉取目标镜像并以 `--no-build` 启动。不要将 ACR 密码写入仓库或 ECS 的应用 `.env`。
+同时添加 Actions variable `ACR_REGISTRY`，值为完整 ACR 镜像仓库地址
+`<registry-host>/<namespace>/<repository>`，例如
+`registry.cn-hangzhou.aliyuncs.com/my-namespace/smartagent`（不要附带协议或 tag）。
+在 ACR 中预先创建这个镜像仓库，并给推送账号写权限、只读账号拉取权限。四个应用镜像共用
+此仓库，通过镜像 tag 后缀区分（例如 `<commit-sha>-platformagent-backend`）；ECS 部署时会
+通过只读账号登录 ACR，拉取目标镜像并以 `--no-build` 启动。不要将 ACR 密码写入仓库或
+ECS 的应用 `.env`。
 
 推送到配置的部署分支会自动部署有改动的应用；也可以在
 **Actions → Deploy SmartAgent → Run workflow** 选择 `all`、`platformagent` 或 `capability`。
