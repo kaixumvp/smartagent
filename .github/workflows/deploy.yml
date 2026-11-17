@@ -118,6 +118,19 @@ jobs:
           CAPABILITY_CHANGED: ${{ steps.targets.outputs.capability }}
         run: |
           set -euo pipefail
+          platform_env_file="application/platformagent/backend/.env"
+          created_platform_env_file=false
+          if [[ "$PLATFORM_CHANGED" == "true" && ! -e "$platform_env_file" ]]; then
+            : > "$platform_env_file"
+            created_platform_env_file=true
+          fi
+          cleanup() {
+            if [[ "$created_platform_env_file" == "true" ]]; then
+              rm -f -- "$platform_env_file"
+            fi
+          }
+          trap cleanup EXIT
+
           if [[ "$PLATFORM_CHANGED" == "true" ]]; then
             ACR_REGISTRY="$ACR_REGISTRY" PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
               --file application/platformagent/backend/docker-compose.yml \
