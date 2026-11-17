@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, ArrowUpRight, Bot, ChevronDown, ChevronLeft, ChevronRight, Globe2, MessageCircle, Plus, RefreshCw, Search, Send, Server, Sparkles, Wrench, X } from 'lucide-react';
+import { Activity, ArrowUpRight, Bot, ChevronDown, ChevronLeft, ChevronRight, Globe2, MessageCircle, Plus, RefreshCw, Search, Send, Server, Sparkles, Trash2, Wrench, X } from 'lucide-react';
 import { MD_MODES } from '../../constants.js';
 import MarkdownText, { isMdOverridden, resolveMdMode } from '../../components/MarkdownText.jsx';
 import RunResultPanel from '../../components/RunResultPanel.jsx';
