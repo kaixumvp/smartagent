@@ -3,14 +3,14 @@
 > 本文件是本仓库**唯一的版本真源**。任何文档、README、注释里的版本号与它冲突，以本文件为准。
 > 各项目的详细路线图仍由各自文档承载（见每行的「路线图」列），但**当前版本与边界**在这里定义。
 
-最后更新：2026-10-14
+最后更新：2026-10-25
 
 ---
 
-## 一、三个独立版本轴，一个随平台发布的控制台
+## 一、三个已交付版本轴，一条规划中的知识线，一个随平台发布的控制台
 
 平台后端、`ouroboros` 框架和 Capability Registry 各自演进；Console 随平台交付，不单独维护
-发布节奏。三个独立版本号互不可比。
+发布节奏。Knowledge Hub 按 Capability 同级独立服务规划，已交付 v0.1–v0.2（MVP）。各版本号互不可比。
 
 | 项目 | 路径 | 当前版本 | 版本轴 | 路线图 |
 |---|---|---|---|---|
@@ -18,13 +18,14 @@
 | `smartagent-console` | `application/platformagent/frontend/` | 平台功能基线 **0.3.0**；`package.json` 仍为 **0.1.0** | 随平台线，不单独发版 | `documentation/platformagent/版本规划.md` |
 | `ouroboros` | `application/ouroboros/` | **2.0.0** | 独立 SemVer（API 已冻结） | `documentation/ouroboros/版本规划.md` |
 | `capability` (Capability Registry) | `application/capability/` | **0.3.0** | 独立服务版本线，通过 HTTP 与平台集成 | `documentation/capability/version-roadmap.md` |
+| `knowledge` (Knowledge Hub) | `application/knowledge/` | **0.2.0** | 独立服务版本线，通过 HTTP / MCP 与平台集成 | `documentation/knowledge/version-roadmap.md` |
 
 > Console 的 `package.json` 版本字段尚未随平台功能线更新；在该字段调整前，不应把它当作 Console
 > 独立发布版本。
 
-**为什么是三条轴**：`ouroboros` 是业务无关的框架，可以被任意宿主复用，因此必须能独立于
-`smartagent` 发布（否则宿主升级与框架升级会互相绑死）。`capability` 不共享 Python 代码或数据库，
-但由平台通过受共享密钥保护的内部 HTTP API 消费；版本线仍可独立演进。
+**为什么是独立轴**：`ouroboros` 是业务无关的框架，可以被任意宿主复用，因此必须能独立于
+`smartagent` 发布（否则宿主升级与框架升级会互相绑死）。`capability` 与规划中的 `knowledge`
+都不共享 Python 代码或数据库，由平台通过受保护的内部 HTTP API 消费；版本线仍可独立演进。
 
 ---
 
@@ -62,6 +63,10 @@
   （如 registry、gateway、memory）；不依赖 `core` 的私有节点/状态实现。
 3. **`capability` 通过 HTTP 接入运行时**：平台 adapter 经共享密钥调用 Capability 内部 API，
    并把 API/MCP Tool manifest 注册为标准 Ouroboros Tools；两项目之间没有 Python package 或数据库依赖。
+4. **`knowledge`（规划）同样通过 HTTP / MCP 接入运行时**：实现 Ouroboros `Knowledge`/`Retriever`
+   端口的是平台 adapter，不是把解析、索引、图谱做进 `platformagent`。平台 0.4.0 若先做薄文本闭环，
+   必须标明可被 Hub 替换，避免两套完整知识库分叉。Hub 的租户/用户权限放到 **v0.7 最后设计**。
+   详见 `documentation/knowledge/version-roadmap.md`。
 
 ---
 
@@ -134,7 +139,31 @@ Console Playground 与成本基线对比明确移入 0.5.0，不留在 0.3.0 里
 
 ---
 
-## 七、发布记录
+## 七、`knowledge` 线：独立服务，v0.1–v0.2 已交付
+
+Capability 管「Agent 能做什么」；Knowledge Hub 管「Agent 知道什么」。编号按**交付顺序**，
+与架构原文第 20 节 V 号不完全相同（原文把 Hybrid Retrieval 写成 V0.4、却把开发顺序放在多源之前）。
+
+| 版本 | 内容 | 状态 |
+|---|---|---|
+| 0.1.0 | 文档知识库：上传 / 解析 / OCR / Markdown / Chunk / Vector Search / 薄 Retrieve API | ✅ 已交付 · MVP 上半 |
+| 0.2.0 | Hybrid Retrieval：BM25 + Metadata Filter + Reranker | ✅ 已交付 · MVP 下半 |
+| 0.3.0 | 多知识源：Folder / NAS / S3 / Git / Web + 增量同步 | ⏳ 未开始 |
+| 0.4.0 | Knowledge Graph：Entity / Relation / Resolution / Neo4j | ⏳ 未开始 |
+| 0.5.0 | Graph RAG：三路融合与有界多跳 | ⏳ 未开始 |
+| 0.6.0 | Agentic Retrieval + Knowledge MCP + 平台 Runtime 集成 | ⏳ 未开始 |
+| 0.7.0 | Access Control：Tenant / User / RBAC / 检索鉴权（最后设计） | ⏳ 未开始 |
+| 1.0.0 | API 冻结 + 私有化验收 | ⏳ 未开始 |
+
+当前状态需注意：
+- 代码在 `application/knowledge/`：FastAPI 后端 + React 极简管理台 + Docker Compose（PG + MinIO + Qdrant）。
+- 管理 API 无用户鉴权、CORS 为 `*`、`auto_create_tables` 默认开启；内部 Retrieve 用可选共享密钥。
+- 第一阶段技术栈是 PostgreSQL + MinIO + Qdrant，**不上** Elasticsearch / Neo4j；Redis 留待后续同步/缓存再引入。
+- 正式打 tag 时使用 `knowledge-v0.1.0`。
+
+---
+
+## 八、发布记录
 
 截至 2026-10-14，仓库**没有 git tag**（`git tag -l` 为空）；版本号由项目清单和文档维护。
 正式打 tag 时使用：
@@ -143,11 +172,12 @@ Console Playground 与成本基线对比明确移入 0.5.0，不留在 0.3.0 里
 smartagent-v0.3.0
 ouroboros-v2.0.0
 capability-v0.3.0
+knowledge-v0.1.0   # 开工后
 ```
 
 ---
 
-## 八、已知的待决问题
+## 九、已知的待决问题
 
 1. **`ouroboros` 这个发行名在 PyPI 上已被占用**（`steiflab/Ouroboros`，scRNA-seq 工具）。
    要发布必须换发行名或走私有源。这是与包名归一无关的第二个问题。
