@@ -46,6 +46,7 @@ class OidcProviderOut(BaseModel):
     scopes: list[str]
     status: str
     callback_url: str
+    linked_user_count: int = 0
 
 
 class PublicOidcProviderOut(BaseModel):
@@ -255,6 +256,19 @@ class GrantOut(BaseModel):
     resource_id: str
     action: str
     effect: str
+
+
+class AuditLogOut(BaseModel):
+    id: str
+    tenant_id: str
+    trace_id: str | None = None
+    actor: str | None = None
+    action: str
+    resource_type: str | None = None
+    resource_id: str | None = None
+    result: str
+    detail: dict | None = None
+    created_at: datetime
 
 
 # --------------------------------------------------------------------------- memory

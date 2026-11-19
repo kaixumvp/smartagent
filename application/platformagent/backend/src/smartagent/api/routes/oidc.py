@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +53,11 @@ def _http_error(status: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"code": code, "message": message})
 
 
-def _provider_out(provider: IdentityProvider, settings: Settings) -> OidcProviderOut:
+def _provider_out(
+    provider: IdentityProvider,
+    settings: Settings,
+    linked_user_count: int = 0,
+) -> OidcProviderOut:
     return OidcProviderOut(
         id=provider.id,
         tenant_id=provider.tenant_id,
@@ -64,6 +68,7 @@ def _provider_out(provider: IdentityProvider, settings: Settings) -> OidcProvide
         scopes=provider.scopes,
         status=provider.status,
         callback_url=callback_url(settings),
+        linked_user_count=linked_user_count,
     )
 
 
@@ -186,8 +191,22 @@ async def list_providers(
             select(IdentityProvider).where(IdentityProvider.tenant_id == principal.tenant_id)
         )
     ).scalars().all()
+    linked_counts = (
+        await db.execute(
+            select(
+                ExternalIdentity.provider_id,
+                func.count(func.distinct(ExternalIdentity.user_id)),
+            )
+            .where(ExternalIdentity.tenant_id == principal.tenant_id)
+            .group_by(ExternalIdentity.provider_id)
+        )
+    ).all()
+    linked_users_by_provider = {provider_id: count for provider_id, count in linked_counts}
     try:
-        return [_provider_out(row, settings) for row in rows]
+        return [
+            _provider_out(row, settings, linked_users_by_provider.get(row.id, 0))
+            for row in rows
+        ]
     except OidcConfigurationError as exc:
         raise _http_error(503, "OIDC_NOT_CONFIGURED", str(exc)) from exc
 

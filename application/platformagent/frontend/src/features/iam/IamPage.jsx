@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { KeyRound, Plus, RefreshCw, ShieldCheck, Trash2, Users, Wrench } from 'lucide-react';
+import {
+  Activity, FileText, KeyRound, Plus, RefreshCw, Search, ShieldCheck, Trash2, Users, Wrench,
+} from 'lucide-react';
 
 const TABS = [
   { id: 'roles', label: '角色与权限', icon: ShieldCheck },
-  { id: 'users', label: '用户', icon: Users },
-  { id: 'grants', label: 'Tool 授权', icon: Wrench },
-  { id: 'oidc', label: '第三方登录', icon: KeyRound },
+  { id: 'users', label: '用户与成员', icon: Users },
+  { id: 'grants', label: '资源授权', icon: Wrench },
+  { id: 'oidc', label: '身份提供商', icon: KeyRound },
+  { id: 'audit', label: '访问审计', icon: FileText },
 ];
 
 const EMPTY_PROVIDER = {
@@ -23,11 +26,17 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
   const [permissions, setPermissions] = useState([]);
   const [users, setUsers] = useState([]);
   const [grants, setGrants] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [providers, setProviders] = useState([]);
   const [canManageProviders, setCanManageProviders] = useState(false);
   const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditResultFilter, setAuditResultFilter] = useState('all');
   const [roleName, setRoleName] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [roleCodes, setRoleCodes] = useState([]);
@@ -60,7 +69,12 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
     setLoading(true);
     setError('');
     const jobs = [
-      ['roles', '/roles', setRoles],
+      ['roles', '/roles', (items) => {
+        setRoles(items);
+        setSelectedRoleId((current) => items.some((role) => role.id === current)
+          ? current
+          : items[0]?.id || '');
+      }],
       ['permissions', '/roles/permissions', setPermissions],
       ['users', '/users', setUsers],
       ['grants', '/grants', setGrants],
@@ -73,8 +87,8 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
         return null;
       } catch (requestError) {
         if (requestError.status === 401) return 'session: 登录已过期，请重新登录';
-        if (requestError.status !== 403 && requestError.status !== 404) return `${key}: ${requestError.message}`;
-        return null;
+        if (requestError.status === 403) return `${key}: 当前账号没有访问权限`;
+        return `${key}: ${requestError.message}`;
       }
     }));
     try {
@@ -104,6 +118,25 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
   }
 
   useEffect(() => { loadAll(); }, [token]);
+
+  async function loadAudit() {
+    setAuditLoading(true);
+    setError('');
+    try {
+      const result = await api('/audit?limit=200');
+      setAuditLogs(Array.isArray(result) ? result : []);
+    } catch (requestError) {
+      setError(requestError.status === 403
+        ? '访问审计仅对管理员开放。'
+        : `访问审计加载失败：${requestError.message}`);
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'audit') loadAudit();
+  }, [tab, token]);
 
   useEffect(() => {
     if (!selectedRole) {
@@ -246,7 +279,9 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });
-      setProviders((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setProviders((current) => current.map((item) => item.id === updated.id
+        ? { ...updated, linked_user_count: item.linked_user_count || 0 }
+        : item));
       onNotice(status === 'active' ? '身份提供商已启用' : '身份提供商已停用');
     } catch (requestError) {
       onNotice(`更新身份提供商失败：${requestError.message}`);
@@ -306,6 +341,25 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
   }, [onNotice]);
 
   const principalOptions = grantForm.principal_type === 'role' ? roles : users;
+  const filteredUsers = useMemo(() => {
+    const query = userSearch.trim().toLocaleLowerCase();
+    return users.filter((user) => {
+      const matchesSearch = !query
+        || [user.name, user.username, user.id, ...(user.roles || [])]
+          .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+      const matchesStatus = userStatusFilter === 'all' || user.status === userStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [users, userSearch, userStatusFilter]);
+  const filteredAuditLogs = useMemo(() => {
+    const query = auditSearch.trim().toLocaleLowerCase();
+    return auditLogs.filter((entry) => {
+      const matchesSearch = !query
+        || [entry.actor, entry.action, entry.resource_type, entry.resource_id, entry.trace_id]
+          .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+      return matchesSearch && (auditResultFilter === 'all' || entry.result === auditResultFilter);
+    });
+  }, [auditLogs, auditSearch, auditResultFilter]);
 
   return (
     <section className="iam-page">
@@ -326,7 +380,26 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
           </button>
         ))}
       </div>
-      {error && <div className="iam-error">{error}</div>}
+      {error && <div className="iam-error" role="alert">{error}</div>}
+
+      <div className="iam-summary" aria-label="身份与访问概览">
+        <article className="iam-summary-card">
+          <span className="iam-summary-icon"><Users size={17} /></span>
+          <span><small>租户成员</small><strong>{users.length}</strong><em>{users.filter((user) => user.status === 'active').length} 位启用</em></span>
+        </article>
+        <article className="iam-summary-card">
+          <span className="iam-summary-icon lavender"><ShieldCheck size={17} /></span>
+          <span><small>已分配角色</small><strong>{roles.length}</strong><em>{roles.filter((role) => role.is_builtin).length} 个内置</em></span>
+        </article>
+        <article className="iam-summary-card">
+          <span className="iam-summary-icon gold"><Wrench size={17} /></span>
+          <span><small>资源授权规则</small><strong>{grants.length}</strong><em>按资源单独控制</em></span>
+        </article>
+        <article className="iam-summary-card">
+          <span className="iam-summary-icon coral"><KeyRound size={17} /></span>
+          <span><small>身份提供商</small><strong>{providers.length}</strong><em>{activeProviders.length} 个运行中</em></span>
+        </article>
+      </div>
 
       {tab === 'roles' && (
         <div className="iam-columns">
@@ -378,6 +451,55 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
         </div>
       )}
 
+      {tab === 'audit' && (
+        <section className="panel iam-panel iam-audit-panel">
+          <div className="iam-panel-heading">
+            <div><span className="section-kicker">ACCESS AUDIT</span><h2>访问审计</h2><p className="iam-subtitle">查看当前租户最近 200 条身份、权限与资源访问事件；仅管理员可见。</p></div>
+            <button className="secondary-btn" onClick={loadAudit} disabled={auditLoading}>
+              <RefreshCw size={14} className={auditLoading ? 'spin' : ''} />刷新
+            </button>
+          </div>
+          <div className="iam-audit-filters">
+            <label className="iam-search">
+              <Search size={15} />
+              <input value={auditSearch} onChange={(event) => setAuditSearch(event.target.value)} placeholder="搜索操作、成员、资源或 Trace ID" aria-label="搜索审计记录" />
+            </label>
+            <select aria-label="按结果筛选审计记录" value={auditResultFilter} onChange={(event) => setAuditResultFilter(event.target.value)}>
+              <option value="all">全部结果</option>
+              <option value="allow">允许</option>
+              <option value="deny">拒绝</option>
+              <option value="approve">批准</option>
+              <option value="reject">拒绝审批</option>
+            </select>
+          </div>
+          <div className="iam-audit-table-wrap">
+            <table className="iam-audit-table">
+              <thead><tr><th>操作</th><th>执行者</th><th>资源</th><th>结果</th><th>时间</th><th>Trace ID</th></tr></thead>
+              <tbody>
+                {filteredAuditLogs.map((entry) => {
+                  const actor = users.find((user) => user.id === entry.actor);
+                  return (
+                    <tr key={entry.id}>
+                      <td><strong>{entry.action}</strong>{entry.detail?.required && <small>需要权限：{entry.detail.required}</small>}</td>
+                      <td>{actor?.name || actor?.username || entry.actor || '系统'}</td>
+                      <td>{entry.resource_type ? <code>{entry.resource_type}:{entry.resource_id || '—'}</code> : '—'}</td>
+                      <td><span className={`iam-audit-result ${entry.result}`}>{entry.result}</span></td>
+                      <td>{entry.created_at ? new Date(entry.created_at).toLocaleString() : '—'}</td>
+                      <td><code>{entry.trace_id || '—'}</code></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!auditLoading && filteredAuditLogs.length === 0 && (
+              <p className="iam-empty">{auditLogs.length ? '没有符合筛选条件的审计记录。' : '暂无审计记录。'}</p>
+            )}
+            {auditLoading && <p className="iam-empty"><Activity size={14} />正在加载审计记录…</p>}
+          </div>
+          <p className="iam-list-footer">当前显示 {filteredAuditLogs.length} 条 · 接口最多返回最近 200 条</p>
+        </section>
+      )}
+
       {tab === 'users' && (
         <div className="iam-columns">
           <section className="panel iam-panel">
@@ -395,11 +517,26 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
             </form>
           </section>
           <section className="panel iam-panel">
-            <div className="iam-panel-heading"><div><span className="section-kicker">TENANT USERS</span><h2>用户与角色</h2></div></div>
+            <div className="iam-panel-heading"><div><span className="section-kicker">TENANT MEMBERS</span><h2>成员目录</h2><p className="iam-subtitle">搜索成员并管理账号状态与角色分配。</p></div></div>
+            <div className="iam-member-filters">
+              <label className="iam-search">
+                <Search size={15} />
+                <input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="搜索姓名、用户名或角色" aria-label="搜索成员" />
+              </label>
+              <select aria-label="按状态筛选成员" value={userStatusFilter} onChange={(event) => setUserStatusFilter(event.target.value)}>
+                <option value="all">全部状态</option>
+                <option value="active">启用</option>
+                <option value="disabled">已停用</option>
+              </select>
+            </div>
             <div className="iam-user-list">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <div className="iam-user-row" key={user.id}>
-                  <div className="iam-user-copy"><strong>{user.name || user.username}</strong><small>{user.username} · {user.status}</small></div>
+                  <div className="iam-user-copy">
+                    <strong>{user.name || user.username}</strong>
+                    <small>{user.username} · {user.status === 'active' ? '已启用' : '已停用'}</small>
+                    {user.created_at && <small>加入于 {new Date(user.created_at).toLocaleDateString()}</small>}
+                  </div>
                   <select
                     multiple
                     aria-label={`${user.username} 的角色`}
@@ -417,8 +554,9 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
                   </button>
                 </div>
               ))}
-              {users.length === 0 && <p className="iam-empty">暂无用户或当前账号没有 user:manage 权限。</p>}
+              {filteredUsers.length === 0 && <p className="iam-empty">{users.length ? '没有符合筛选条件的成员。' : '暂无用户，或当前账号没有 user:manage 权限。'}</p>}
             </div>
+            <p className="iam-list-footer">当前显示 {filteredUsers.length} 位成员 · 共 {users.length} 位</p>
           </section>
         </div>
       )}
@@ -478,7 +616,7 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
             </section>
           )}
           <section className="panel iam-panel">
-            <div className="iam-panel-heading"><div><span className="section-kicker">PROVIDERS</span><h2>当前租户</h2></div></div>
+            <div className="iam-panel-heading"><div><span className="section-kicker">FEDERATED IDENTITY</span><h2>当前租户身份源</h2><p className="iam-subtitle">标准 OIDC 单点登录配置与账号绑定。</p></div></div>
             <div className="iam-provider-list">
               {canManageProviders && providers.map((provider) => (
                 <article className="iam-provider-card" key={provider.id}>
@@ -486,6 +624,11 @@ export default function IamPage({ api, token, tenantId, onNotice }) {
                     <button className="text-btn" onClick={() => setProviderStatus(provider, provider.status === 'active' ? 'disabled' : 'active')}>{provider.status === 'active' ? '停用' : '启用'}</button>
                   </div>
                   <small className="iam-provider-issuer">{provider.issuer}</small>
+                  <div className="iam-provider-meta">
+                    <span><small>Client ID</small><strong>{provider.client_id}</strong></span>
+                    <span><small>Scopes</small><strong>{(provider.scopes || []).join(' · ') || '—'}</strong></span>
+                    <span><small>已绑定成员</small><strong>{provider.linked_user_count || 0} 人</strong></span>
+                  </div>
                   <label className="iam-callback">回调地址<input readOnly value={provider.callback_url} onFocus={(event) => event.target.select()} /></label>
                   <div className="iam-provider-actions">
                     <button className="text-btn danger" onClick={() => removeProvider(provider)}><Trash2 size={13} />删除</button>

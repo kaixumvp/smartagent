@@ -10,6 +10,7 @@ from scalar_fastapi import get_scalar_api_reference
 from smartagent.api.middleware import rate_limit_middleware, trace_middleware
 from smartagent.api.routes import (
     agents,
+    audit,
     auth,
     capability,
     cost,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(roles.router, prefix=settings.api_prefix)
     app.include_router(users.router, prefix=settings.api_prefix)
     app.include_router(grants.router, prefix=settings.api_prefix)
+    app.include_router(audit.router, prefix=settings.api_prefix)
     app.include_router(memory.router, prefix=settings.api_prefix)
     app.include_router(golden_sets.router, prefix=settings.api_prefix)
     app.include_router(evaluations.router, prefix=settings.api_prefix)
