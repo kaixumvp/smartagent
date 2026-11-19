@@ -25,6 +25,7 @@ class SkillManager:
         manifest_data: dict = record.get("manifest") or {}
         manifest = PluginManifest(
             name=record["name"],
+            resource_id=record.get("resource_id"),
             version=str(record.get("version", "1")),
             kind="skill",
             description=manifest_data.get("description") or record.get("description") or "",

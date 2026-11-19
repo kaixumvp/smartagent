@@ -312,7 +312,7 @@ def test_create_run_pauses_on_high_risk_tool():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "awaiting_human"
-    assert data["pending_approvals"] == [{"resource_type": "tool", "resource_id": "delete_account"}]
+    assert data["pending_approvals"] == [{"resource_type": "tool", "resource_id": "tool_delete_account"}]
     assert data["result"] is None
     # A checkpoint must exist, or the approval below has nothing to resume from.
     assert fake_db.runs[0].checkpoint is not None
@@ -379,7 +379,7 @@ def test_approve_resumes_the_same_run():
     assert len(resumed["steps"]) > paused_steps
     # plan ran once across both requests; a replay would have produced a second one.
     assert [s["node"] for s in resumed["steps"]].count("plan") == 1
-    assert fake_db.runs[0].approvals == ["delete_account"]
+    assert fake_db.runs[0].approvals == ["tool_delete_account"]
     assert "run.approve" in fake_db.audit_actions()
 
     # The framework restarts its step counter on resume; `seq` is the run's whole timeline,

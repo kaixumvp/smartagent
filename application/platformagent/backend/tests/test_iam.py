@@ -1,3 +1,7 @@
+import pytest
+from pydantic import ValidationError
+
+from smartagent.api.schemas import GrantCreateRequest
 from smartagent.iam.permission_manager import PermissionContext, PermissionDecision, PermissionManager
 
 pm = PermissionManager()
@@ -45,3 +49,51 @@ def test_high_risk_allowed_after_approval():
 
 def test_missing_run_execute_denied():
     assert pm.check(_ctx(codes={}), "execute", "tool", "calculator", "read", False) is PermissionDecision.DENY
+
+
+def test_action_grant_allows_only_the_granted_action():
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_actions={("tool", "tool-1", "execute", "allow")},
+    )
+    assert pm.check(ctx, "execute", "tool", "tool-1", "read") is PermissionDecision.ALLOW
+    assert pm.check(ctx, "read", "tool", "tool-1", "read") is PermissionDecision.DENY
+
+
+def test_action_specific_deny_overrides_action_allow():
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_actions={
+            ("tool", "tool-1", "execute", "allow"),
+            ("tool", "tool-1", "execute", "deny"),
+        },
+    )
+    assert pm.check(ctx, "execute", "tool", "tool-1", "read") is PermissionDecision.DENY
+
+
+def test_action_grants_override_legacy_resource_grant():
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_keys={("tool", "tool-1", "allow")},
+        grant_actions={("tool", "tool-1", "read", "allow")},
+    )
+    assert pm.check(ctx, "execute", "tool", "tool-1", "read") is PermissionDecision.DENY
+
+
+def test_grant_api_only_accepts_currently_enforced_action():
+    request = GrantCreateRequest(
+        principal_type="user",
+        principal_id="user-1",
+        resource_type="tool",
+        resource_id="tool-1",
+    )
+    assert request.action == "execute"
+
+    with pytest.raises(ValidationError):
+        GrantCreateRequest(
+            principal_type="user",
+            principal_id="user-1",
+            resource_type="tool",
+            resource_id="tool-1",
+            action="write",
+        )

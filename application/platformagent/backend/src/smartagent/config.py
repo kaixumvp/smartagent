@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +36,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_seconds: int = 3600
+    oidc_encryption_key: str = ""
+    oidc_allowed_hosts: list[str] = Field(default_factory=list)
+    oidc_public_base_url: str = ""
 
     # Rate limiting (token bucket over Redis)
     rate_limit_enabled: bool = True

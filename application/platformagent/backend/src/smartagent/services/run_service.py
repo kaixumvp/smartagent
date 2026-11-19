@@ -42,6 +42,7 @@ from ouroboros.core.runtime import (
     RuntimeDeps,
 )
 from ouroboros.plugins.registry import PluginRegistry
+from ouroboros.ports import check_plugin_permission
 from ouroboros.skills.manager import SkillManager
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,18 @@ class RunService:
 
     # ------------------------------------------------------------------ assembly
     async def load_registry(self, db: AsyncSession, agent: Agent) -> PluginRegistry:
-        return await self._loader.load_for_agent(db, self._principal.tenant_id, agent.config)
+        loaded = await self._loader.load_for_agent(db, self._principal.tenant_id, agent.config)
+        authorized = PluginRegistry()
+        for plugin in loaded.all():
+            manifest = plugin.manifest
+            decision = check_plugin_permission(
+                self._checker,
+                self._permission_context,
+                manifest,
+            )
+            if decision.value != "deny":
+                authorized.register(plugin)
+        return authorized
 
     def build_runtime_config(self, agent_config: dict | None) -> RuntimeConfig:
         """Agent-level `config.runtime` overrides the deployment-wide `Settings` defaults."""

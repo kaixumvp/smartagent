@@ -23,10 +23,19 @@ class PermissionManager:
         role_ids = await rbac.load_user_role_ids(db, principal.user_id, principal.tenant_id)
         role_names = await rbac.load_user_role_names(db, principal.user_id, principal.tenant_id)
         permission_codes = await rbac.load_permission_codes(db, role_ids)
-        grant_keys = await grants_mod.load_grant_keys(db, principal.tenant_id, principal.user_id, role_ids)
+        grants = await grants_mod.load_grants(db, principal.tenant_id, principal.user_id, role_ids)
         return PermissionContext(
             permission_codes=permission_codes,
-            grant_keys=grant_keys,
+            grant_keys={
+                (grant.resource_type, grant.resource_id, grant.effect)
+                for grant in grants
+                if grant.action == "*"
+            },
+            grant_actions={
+                (grant.resource_type, grant.resource_id, grant.action, grant.effect)
+                for grant in grants
+                if grant.action != "*"
+            },
             is_admin="admin" in role_names,
         )
 

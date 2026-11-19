@@ -91,6 +91,49 @@ in the Registry. The Compose stacks share the `capability-internal` Docker netwo
 For a Registry running directly on the host, the container can reach it at
 `http://host.docker.internal:8010`.
 
+### Generic OIDC login (optional)
+
+PlatformAgent supports tenant-admin-configured OIDC Authorization Code + PKCE. It does not
+auto-create local accounts or assign roles from external claims. An administrator must first
+create the local user and assign roles, then the user signs into that local account and binds
+their external identity. Existing password login stays available.
+
+Configure these values in the backend `.env` before enabling a provider:
+
+```dotenv
+OIDC_ENCRYPTION_KEY=<Fernet key; generate with python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
+OIDC_ALLOWED_HOSTS=["your-idp.example.com"]
+OIDC_PUBLIC_BASE_URL=https://your-public-platform.example.com
+```
+
+The public base URL must be HTTPS and match the registered IdP callback:
+`https://your-public-platform.example.com/v1/auth/oidc/callback`.
+`OIDC_ALLOWED_HOSTS` must cover the issuer, authorization, token, and JWKS endpoint hosts.
+Keep the encryption key stable and back it up securely; rotating it requires re-encrypting
+stored client secrets and active PKCE verifiers.
+
+Admin API (`Authorization: Bearer <admin JWT>`):
+
+- `POST /v1/auth/oidc/providers` — configure `provider_key`, `display_name`, `issuer`,
+  `client_id`, `client_secret`, and scopes (must include `openid`).
+- `GET /v1/auth/oidc/providers` — list tenant providers (secrets are never returned).
+- `PATCH /v1/auth/oidc/providers/{provider_id}` — rotate client secret, scopes, status or display name.
+- `DELETE /v1/auth/oidc/providers/{provider_id}` — remove provider and linked identities.
+
+Account binding and login:
+
+1. Sign in with the user's existing PlatformAgent password account.
+2. With that bearer token, call `POST /v1/auth/oidc/{provider_id}/link` with the current
+   local password; open the returned `authorization_url` in the same browser session (the
+   response sets an HttpOnly transaction cookie).
+3. After successful binding, use `GET /v1/auth/oidc/{provider_id}/authorize` to authenticate;
+   the callback returns the PlatformAgent bearer token response.
+4. `GET /v1/auth/oidc/providers/{tenant_id}` lists active provider choices for a login page.
+
+Unlinked identities are denied, even when their email matches a local user. OIDC group/role
+claims are intentionally ignored. This release does not implement SCIM, vendor directories,
+SAML, refresh tokens, or JWT revocation.
+
 ## Deploying to Aliyun ECS
 
 The unified repository workflow `.github/workflows/deploy.yml` builds and deploys only the

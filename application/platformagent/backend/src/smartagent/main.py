@@ -19,6 +19,7 @@ from smartagent.api.routes import (
     golden_sets,
     grants,
     memory,
+    oidc,
     roles,
     runs,
     skills,
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(tools.router, prefix=settings.api_prefix)
     app.include_router(skills.router, prefix=settings.api_prefix)
     app.include_router(auth.router, prefix=settings.api_prefix)
+    app.include_router(oidc.router, prefix=settings.api_prefix)
     app.include_router(roles.router, prefix=settings.api_prefix)
     app.include_router(users.router, prefix=settings.api_prefix)
     app.include_router(grants.router, prefix=settings.api_prefix)

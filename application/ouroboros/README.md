@@ -144,7 +144,7 @@ class MyPermissionChecker(PermissionChecker):
                                 requires_approval=requires_approval, approved=approved)
 ```
 
-`PermissionContext`：`permission_codes: set[str]`、`grant_keys: set[(resource_type, resource_id, effect)]`、`is_admin: bool`。
+`PermissionContext`：`permission_codes: set[str]`、旧版资源级兼容 `grant_keys`、动作级 `grant_actions: set[(resource_type, resource_id, action, effect)]`、`is_admin: bool`。新授权使用 `grant_actions`；宿主迁移旧数据时可用 `grant_keys` 保留旧语义。
 
 判定顺序：**admin 绕过 → 功能权限 `run:execute` → deny 优先 → read 默认放行 → grant 要求 → 高危审批**。
 

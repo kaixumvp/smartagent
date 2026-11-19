@@ -16,6 +16,7 @@ class CapabilityRegistryTool(BaseTool):
         permission: str = "read",
     ) -> None:
         self.id = f"capability_{tool_id}"
+        self.resource_id = tool_id
         self.name = name
         self.description = description
         self.parameters = parameters or {"type": "object", "properties": {}, "required": []}

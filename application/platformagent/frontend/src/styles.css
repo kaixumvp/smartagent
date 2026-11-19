@@ -274,6 +274,70 @@ button { cursor: pointer; border: 0; color: inherit; }
 .activity-panel .pulse-chart { height: 210px; }
 .overview-run-result { max-height: 420px; margin-top: 16px; }
 
+.iam-page { display: grid; gap: 16px; }
+.iam-tabs { display: flex; flex-wrap: wrap; gap: 7px; padding: 5px; border: 1px solid #e3eaee; border-radius: 9px; background: #fff; }
+.iam-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 6px; background: transparent; color: #647985; font-size: 11px; }
+.iam-tabs button:hover, .iam-tabs button.active { background: #eaf5f3; color: #127d76; }
+.iam-columns { display: grid; grid-template-columns: minmax(260px, .82fr) minmax(0, 1.18fr); gap: 15px; align-items: start; }
+.iam-panel { min-width: 0; padding: 20px; }
+.iam-panel-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.iam-panel-heading h2 { margin: 5px 0 0; color: #203847; font-size: 16px; }
+.iam-inline-form { display: flex; gap: 8px; margin-bottom: 13px; }
+.iam-inline-form input, .iam-form input, .iam-form select, .iam-grant-form input, .iam-grant-form select, .iam-link-form input, .iam-link-form select, .iam-user-row select, .iam-callback input {
+  min-width: 0; width: 100%; padding: 9px 10px; border: 1px solid #dfe7eb; border-radius: 6px; outline: 0; background: #fff; color: #2d4553; font-size: 11px;
+}
+.iam-inline-form input:focus, .iam-form input:focus, .iam-form select:focus, .iam-grant-form input:focus, .iam-grant-form select:focus { border-color: #6bb9ae; }
+.iam-inline-form .primary-btn, .iam-form .primary-btn, .iam-grant-form .primary-btn { flex: 0 0 auto; padding: 9px 12px; font-size: 10px; }
+.iam-list, .iam-permission-list, .iam-user-list, .iam-grant-list, .iam-provider-list { display: grid; gap: 8px; }
+.iam-list-item { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 11px; border: 1px solid #e8eef1; border-radius: 7px; background: #fff; text-align: left; }
+.iam-list-item:hover, .iam-list-item.selected { border-color: #a5d3cc; background: #f3faf8; }
+.iam-list-item > span:first-child, .iam-user-copy, .iam-check > span, .iam-provider-heading > div { display: grid; gap: 4px; }
+.iam-list-item strong, .iam-user-copy strong, .iam-check strong, .iam-provider-heading strong { color: #304957; font-size: 11px; }
+.iam-list-item small, .iam-user-copy small, .iam-check small, .iam-provider-heading small { color: #82929b; font-size: 9px; }
+.iam-status { color: #82929b; font: 9px 'DM Mono', monospace; }
+.iam-help { margin: -4px 0 13px; color: #778994; font-size: 10px; line-height: 1.6; }
+.iam-permission-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 440px; overflow: auto; }
+.iam-check { display: flex; align-items: flex-start; gap: 8px; padding: 9px; border: 1px solid #e8eef1; border-radius: 6px; cursor: pointer; }
+.iam-check input { margin-top: 2px; accent-color: #158b83; }
+.iam-save { margin-top: 14px; padding: 9px 13px; font-size: 10px; }
+.iam-form { display: grid; gap: 12px; }
+.iam-form > label, .iam-grant-form > label, .iam-link-form > label, .iam-callback { display: grid; gap: 6px; color: #617581; font-size: 10px; }
+.iam-form select[multiple], .iam-user-row select[multiple] { min-height: 76px; }
+.iam-user-list { max-height: 540px; overflow: auto; }
+.iam-user-row { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(120px, 1fr) auto; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid #edf1f3; }
+.iam-user-row .text-btn { color: #b25b50; font-size: 10px; }
+.iam-grant-form { display: grid; grid-template-columns: repeat(3, minmax(130px, 1fr)); gap: 11px; align-items: end; padding-bottom: 17px; border-bottom: 1px solid #edf1f3; }
+.iam-grant-list { margin-top: 14px; }
+.iam-grant-row { display: grid; grid-template-columns: 55px minmax(90px, .7fr) minmax(100px, 1.2fr) 100px 28px; gap: 10px; align-items: center; padding: 9px 10px; border: 1px solid #e8eef1; border-radius: 6px; font-size: 10px; }
+.iam-grant-row code { overflow: hidden; color: #647985; text-overflow: ellipsis; white-space: nowrap; }
+.grant-effect { padding: 4px 6px; border-radius: 4px; text-align: center; font-size: 9px; }
+.grant-effect.allow { background: #e8f5ef; color: #348466; }.grant-effect.deny { background: #fff0ef; color: #c0524b; }
+.iam-provider-card { display: grid; gap: 11px; padding: 13px; border: 1px solid #e6ecef; border-radius: 8px; }
+.iam-provider-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.iam-provider-issuer { overflow: hidden; color: #7d8e98; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.iam-provider-actions { display: flex; justify-content: space-between; align-items: center; color: #91a0a8; font-size: 9px; }
+.iam-provider-actions .danger { display: inline-flex; align-items: center; gap: 4px; color: #ba5c52; }
+.iam-callback { color: #7c8d96; font-size: 9px; }
+.iam-link-box { display: grid; gap: 8px; margin-top: 17px; padding-top: 15px; border-top: 1px solid #edf1f3; }
+.iam-link-box > strong { color: #304957; font-size: 11px; }.iam-link-box > p { margin: 0; color: #82929b; font-size: 9px; }
+.iam-link-form { display: grid; gap: 8px; }.iam-link-form .secondary-btn { padding: 8px; font-size: 10px; }
+.iam-empty { margin: 5px 0; color: #8797a0; font-size: 10px; }
+.iam-error { padding: 10px 12px; border: 1px solid #f0d7d4; border-radius: 7px; background: #fff6f5; color: #a54f49; font-size: 10px; }
+.login-oidc { display: grid; gap: 8px; margin-top: 18px; padding-top: 15px; border-top: 1px solid #e8edf0; }
+.login-oidc > span { color: #71838d; font-size: 10px; }.login-oidc > small { color: #84939b; font-size: 9px; }
+.login-oidc .secondary-btn { width: 100%; padding: 9px 12px; font-size: 10px; }
+@media (max-width: 900px) { .iam-columns { grid-template-columns: 1fr; } }
+@media (max-width: 620px) {
+  .iam-permission-list { grid-template-columns: 1fr; }
+  .iam-grant-form { grid-template-columns: 1fr 1fr; }
+  .iam-grant-row { grid-template-columns: 50px 1fr 28px; }
+  .iam-grant-row code, .iam-grant-row > span:nth-last-child(2) { grid-column: 2; }
+  .iam-user-row { grid-template-columns: 1fr auto; }
+  .iam-user-row select { grid-column: 1 / -1; grid-row: 2; }
+  .iam-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .iam-tabs button { flex: 0 0 auto; }
+}
+
 /* Shared SmartAgent console visual language */
 body { background: #f3f6f8; color: #29404f; }
 .app-shell { background: #f3f6f8; }

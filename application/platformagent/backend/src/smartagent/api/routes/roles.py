@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from smartagent.api.schemas import RoleCreateRequest, RoleOut, RolePermissionBindRequest
+from smartagent.api.schemas import PermissionOut, RoleCreateRequest, RoleOut, RolePermissionBindRequest
 from smartagent.api.security import get_current_user, require_admin
 from smartagent.db.models import Permission, Role, RolePermission
 from smartagent.db.session import get_db
@@ -13,8 +13,22 @@ from smartagent.iam.permission_manager import Principal
 router = APIRouter(prefix="/roles", tags=["iam"])
 
 
-def _to_out(role: Role) -> RoleOut:
-    return RoleOut(id=role.id, tenant_id=role.tenant_id, name=role.name, is_builtin=role.is_builtin)
+async def _to_out(db: AsyncSession, role: Role) -> RoleOut:
+    codes = (
+        await db.execute(
+            select(Permission.code)
+            .join(RolePermission, RolePermission.permission_id == Permission.id)
+            .where(RolePermission.role_id == role.id)
+            .order_by(Permission.code)
+        )
+    ).scalars().all()
+    return RoleOut(
+        id=role.id,
+        tenant_id=role.tenant_id,
+        name=role.name,
+        is_builtin=role.is_builtin,
+        permission_codes=list(codes),
+    )
 
 
 @router.post("", response_model=RoleOut, status_code=201)
@@ -30,7 +44,7 @@ async def create_role(
     await _bind_permissions(db, role.id, body.permission_codes)
     await db.commit()
     await db.refresh(role)
-    return _to_out(role)
+    return await _to_out(db, role)
 
 
 @router.post("/{role_id}/permissions", response_model=RoleOut)
@@ -48,7 +62,7 @@ async def bind_permissions(
     await db.execute(RolePermission.__table__.delete().where(RolePermission.role_id == role_id))
     await _bind_permissions(db, role_id, body.permission_codes)
     await db.commit()
-    return _to_out(role)
+    return await _to_out(db, role)
 
 
 @router.get("", response_model=list[RoleOut])
@@ -57,7 +71,17 @@ async def list_roles(
     principal: Principal = Depends(get_current_user),
 ):
     rows = (await db.execute(select(Role).where(Role.tenant_id == principal.tenant_id))).scalars().all()
-    return [_to_out(r) for r in rows]
+    return [await _to_out(db, role) for role in rows]
+
+
+@router.get("/permissions", response_model=list[PermissionOut])
+async def list_permissions(
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    del principal
+    rows = (await db.execute(select(Permission).order_by(Permission.code))).scalars().all()
+    return [PermissionOut(code=row.code, description=row.description) for row in rows]
 
 
 async def _bind_permissions(db: AsyncSession, role_id: str, codes: list[str]) -> None:
