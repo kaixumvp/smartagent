@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/v1' })
+const api = axios.create({ baseURL: './v1' })
 
 export const listKnowledgeBases = () => api.get('/knowledge-bases').then((r) => r.data)
 export const createKnowledgeBase = (name) =>

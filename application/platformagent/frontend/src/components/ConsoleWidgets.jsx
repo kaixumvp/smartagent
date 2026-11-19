@@ -2,7 +2,15 @@ import React from 'react';
 import { ArrowUpRight, Bot, Check, Plus, Sparkles, Wrench } from 'lucide-react';
 import Status from './RunStatus.jsx';
 
-export function NavItem({ icon, label, active, onClick, badge }) {
+export function NavItem({ icon, label, active, onClick, badge, href }) {
+  if (href) {
+    return (
+      <a className={`nav-item ${active ? 'active' : ''}`} href={href}>
+        {icon}<span>{label}</span>{badge && <b>{badge}</b>}
+      </a>
+    );
+  }
+
   return (
     <button className={`nav-item ${active ? 'active' : ''}`} onClick={onClick}>
       {icon}<span>{label}</span>{badge && <b>{badge}</b>}

@@ -68,6 +68,11 @@ services:
     ports:
       # 3020 — clear of the console (3000) and Capability frontend (3010).
       - "3020:80"
+    networks:
+      default: {}
+      public-gateway:
+        aliases:
+          - knowledge-frontend
     depends_on:
       - backend
 
@@ -75,3 +80,7 @@ volumes:
   pgdata:
   miniodata:
   qdrantdata:
+
+networks:
+  public-gateway:
+    external: true

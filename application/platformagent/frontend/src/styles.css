@@ -17,7 +17,7 @@ button { cursor: pointer; border: 0; color: inherit; }
 .workspace > svg { color: #82958f; }
 .nav-label { color: #6d837b; font: 500 10px 'DM Mono', monospace; letter-spacing: 1.1px; margin: 0 11px 9px; text-transform: uppercase; }
 .nav-label:not(:first-child) { margin-top: 31px; }
-.nav-item { display: flex; gap: 12px; align-items: center; width: 100%; padding: 11px 12px; border-radius: 8px; margin-bottom: 3px; background: transparent; color: #94a8a1; text-align: left; font-size: 13px; transition: .2s; }
+.nav-item { display: flex; gap: 12px; align-items: center; width: 100%; padding: 11px 12px; border-radius: 8px; margin-bottom: 3px; background: transparent; color: #94a8a1; text-align: left; font-size: 13px; text-decoration: none; transition: .2s; }
 .nav-item svg { width: 17px; height: 17px; stroke-width: 1.7; }
 .nav-item:hover, .nav-item.active { background: #304441; color: #f3f3ea; }
 .nav-item.active { box-shadow: inset 3px 0 #e46956; }

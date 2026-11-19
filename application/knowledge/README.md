@@ -43,12 +43,15 @@ docker-compose.yml  PostgreSQL + MinIO + Qdrant + backend + frontend
 ## 快速启动（Docker Compose）
 
 ```bash
+# 与 PlatformAgent 网关共享前端入口时需要；若网络已存在可跳过。
+docker network create public-gateway
 docker compose up --build
 ```
 
 启动后（宿主端口避开业务层 5432/8000/3000 与 Capability 5433/8010/3010）：
 
 - 前端：http://localhost:3020
+- PlatformAgent 网关入口：`http://localhost/knowledge/`（需同时运行 PlatformAgent）
 - 后端 API 文档（Scalar）：http://localhost:8020/docs
 - 健康检查：http://localhost:8020/health
 - PostgreSQL：localhost:**5434**、Qdrant：localhost:**6333**、MinIO API：localhost:**9010**（控制台 **9011**）
@@ -67,7 +70,8 @@ docker compose up --build
 backend/frontend 镜像，随后上传 Compose 配置并更新远程服务。也可在 Actions 中手动选择 `knowledge`，
 或选择 `all` 一并部署。部署复用工作流已有的 ACR、SSH 配置；服务器端配置文件位于
 `/opt/knowledge/.env`（可选，按需配置真实 embedding 和 `KNOWLEDGE_INTEGRATION_KEY`），持久化数据保存在
-Compose volumes 中。
+Compose volumes 中。PlatformAgent 与 Knowledge 共用 `public-gateway` Docker 网络时，可通过
+`http://<ECS公网IP>/knowledge/` 从平台控制台进入知识库。
 
 ## 本地开发
 

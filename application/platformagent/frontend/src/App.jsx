@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Activity, Bot, Check, ChevronDown, Command, Database, Gauge, LayoutDashboard,
+  Activity, BookOpen, Bot, Check, ChevronDown, Command, Database, Gauge, LayoutDashboard,
   LogOut, RefreshCw, Search, ShieldCheck, Sparkles, Terminal, X,
 } from 'lucide-react';
 import { MD_MODES } from './constants.js';
@@ -234,6 +234,7 @@ function PlatformConsole() {
         <p className="nav-label">资源</p>
         <NavItem icon={<Terminal />} label="工具与技能" active={active === 'tools'} onClick={() => setActive('tools')} />
         <NavItem icon={<Database />} label="记忆库" active={active === 'memory'} onClick={() => setActive('memory')} />
+        <NavItem icon={<BookOpen />} label="知识库" href="/knowledge/" />
         <NavItem icon={<ShieldCheck />} label="权限管理" active={false} onClick={() => { window.location.href = '/iam'; }} />
       </nav>
       <div className="sidebar-bottom"><div className="status-line"><span className="status-dot" />API 在线 <span className="latency">42ms</span></div><button className="user-menu" onClick={() => { localStorage.removeItem('smartagent_token'); setToken(''); }}><div className="user-avatar">AD</div><span><strong>Admin</strong><small>管理员</small></span><LogOut size={15} /></button></div>
