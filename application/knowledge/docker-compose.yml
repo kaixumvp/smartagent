@@ -33,6 +33,7 @@ services:
       - qdrantdata:/qdrant/storage
 
   backend:
+    image: ${ACR_REGISTRY:-local/smartagent}:${KNOWLEDGE_IMAGE_TAG:-latest}-knowledge-backend
     build: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg2://knowledge:knowledge@db:5432/knowledge
@@ -62,6 +63,7 @@ services:
       - minio
 
   frontend:
+    image: ${ACR_REGISTRY:-local/smartagent}:${KNOWLEDGE_IMAGE_TAG:-latest}-knowledge-frontend
     build: ./frontend
     ports:
       # 3020 — clear of the console (3000) and Capability frontend (3010).

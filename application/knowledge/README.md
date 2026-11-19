@@ -61,6 +61,14 @@ docker compose up --build
 > ⚠️ 切换 embedding 模型会改变向量维度/空间：旧的 Qdrant collection 维度不匹配，需删除旧 collection
 > 或改 `QDRANT_COLLECTION` 名重建，并重新导入文档（re-ingest）。
 
+## CI/CD 部署
+
+仓库的 GitHub Actions [Deploy SmartAgent](../../.github/workflows/deploy.yml) 工作流已包含 Knowledge：推送 Knowledge 目录变更时会构建并推送
+backend/frontend 镜像，随后上传 Compose 配置并更新远程服务。也可在 Actions 中手动选择 `knowledge`，
+或选择 `all` 一并部署。部署复用工作流已有的 ACR、SSH 配置；服务器端配置文件位于
+`/opt/knowledge/.env`（可选，按需配置真实 embedding 和 `KNOWLEDGE_INTEGRATION_KEY`），持久化数据保存在
+Compose volumes 中。
+
 ## 本地开发
 
 ```bash
