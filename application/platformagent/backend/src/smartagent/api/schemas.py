@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +17,46 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+
+
+class OidcProviderCreateRequest(BaseModel):
+    provider_key: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,62}$")
+    display_name: str = Field(min_length=1, max_length=128)
+    issuer: str = Field(min_length=1, max_length=512)
+    client_id: str = Field(min_length=1, max_length=256)
+    client_secret: str = Field(min_length=1)
+    scopes: list[str] = Field(default_factory=lambda: ["openid", "email", "profile"])
+
+
+class OidcProviderUpdateRequest(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=128)
+    client_id: str | None = Field(default=None, min_length=1, max_length=256)
+    client_secret: str | None = Field(default=None, min_length=1)
+    scopes: list[str] | None = None
+    status: Literal["active", "disabled"] | None = None
+
+
+class OidcProviderOut(BaseModel):
+    id: str
+    tenant_id: str
+    provider_key: str
+    display_name: str
+    issuer: str
+    client_id: str
+    scopes: list[str]
+    status: str
+    callback_url: str
+    linked_user_count: int = 0
+
+
+class PublicOidcProviderOut(BaseModel):
+    id: str
+    provider_key: str
+    display_name: str
+
+
+class OidcLinkRequest(BaseModel):
+    current_password: str = Field(min_length=1)
 
 
 class ChangePasswordRequest(BaseModel):
@@ -51,6 +92,7 @@ class UserOut(BaseModel):
     name: str
     status: str
     roles: list[str] = Field(default_factory=list)
+    identity_providers: list[str] = Field(default_factory=list)
     created_at: datetime | None = None
 
 
@@ -185,6 +227,12 @@ class RoleOut(BaseModel):
     tenant_id: str
     name: str
     is_builtin: bool = False
+    permission_codes: list[str] = Field(default_factory=list)
+
+
+class PermissionOut(BaseModel):
+    code: str
+    description: str | None = None
 
 
 class RolePermissionBindRequest(BaseModel):
@@ -192,12 +240,12 @@ class RolePermissionBindRequest(BaseModel):
 
 
 class GrantCreateRequest(BaseModel):
-    principal_type: str  # user | role
+    principal_type: Literal["user", "role"]
     principal_id: str
-    resource_type: str  # tool | skill | agent | knowledge
+    resource_type: Literal["tool", "skill", "agent", "knowledge"]
     resource_id: str
-    action: str = "execute"
-    effect: str = "allow"  # allow | deny
+    action: Literal["execute"] = "execute"
+    effect: Literal["allow", "deny"] = "allow"
 
 
 class GrantOut(BaseModel):
@@ -209,6 +257,19 @@ class GrantOut(BaseModel):
     resource_id: str
     action: str
     effect: str
+
+
+class AuditLogOut(BaseModel):
+    id: str
+    tenant_id: str
+    trace_id: str | None = None
+    actor: str | None = None
+    action: str
+    resource_type: str | None = None
+    resource_id: str | None = None
+    result: str
+    detail: dict | None = None
+    created_at: datetime
 
 
 # --------------------------------------------------------------------------- memory

@@ -51,6 +51,14 @@ async def test_registry_openai_schema_and_invoke():
     assert result.output == "hi"
 
 
+def test_tool_manifest_uses_stable_resource_id():
+    tool = _EchoTool()
+    tool.id = "tool_123"
+    registry = PluginRegistry()
+    registry.register_tool(tool)
+    assert registry.get("echo").manifest.resource_id == "tool_123"
+
+
 @pytest.mark.asyncio
 async def test_prompt_skill_renders_placeholders():
     skill = PromptSkill(PluginManifest(name="greet", kind="skill"), {"template": "Hello {{name}}!"})

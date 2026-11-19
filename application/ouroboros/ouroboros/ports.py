@@ -66,6 +66,7 @@ class PluginManifest(BaseModel):
     """Declarative metadata for a plugin: what it is, its parameters, and its required permission."""
 
     name: str
+    resource_id: str | None = None
     version: str = "1"
     kind: str  # tool | skill | knowledge | model | memory | node
     description: str = ""
@@ -118,7 +119,8 @@ class Principal(BaseModel):
 
 class PermissionContext(BaseModel):
     permission_codes: set[str] = Field(default_factory=set)
-    grant_keys: set[tuple[str, str, str]] = Field(default_factory=set)  # (resource_type, resource_id, effect)
+    grant_keys: set[tuple[str, str, str]] = Field(default_factory=set)  # legacy: (resource_type, resource_id, effect)
+    grant_actions: set[tuple[str, str, str, str]] = Field(default_factory=set)  # (resource_type, resource_id, action, effect)
     is_admin: bool = False
 
 
@@ -136,12 +138,23 @@ def check_permission(
         return PermissionDecision.ALLOW
     if action == "execute" and "run:execute" not in ctx.permission_codes:
         return PermissionDecision.DENY
-    if (resource_type, resource_id, "deny") in ctx.grant_keys:
+    resource_action_grants = {
+        (grant_action, effect)
+        for grant_type, grant_id, grant_action, effect in ctx.grant_actions
+        if grant_type == resource_type and grant_id == resource_id
+    }
+    if (action, "deny") in resource_action_grants:
         return PermissionDecision.DENY
+    if resource_action_grants:
+        if (action, "allow") not in resource_action_grants:
+            return PermissionDecision.DENY
+    else:
+        if (resource_type, resource_id, "deny") in ctx.grant_keys:
+            return PermissionDecision.DENY
+        if resource_permission != "read" and (resource_type, resource_id, "allow") not in ctx.grant_keys:
+            return PermissionDecision.DENY
     if resource_permission == "read" and not requires_approval:
         return PermissionDecision.ALLOW
-    if (resource_type, resource_id, "allow") not in ctx.grant_keys:
-        return PermissionDecision.DENY
     if resource_permission == "admin" or requires_approval:
         approved = approved or set()
         if resource_id not in approved:
@@ -160,6 +173,39 @@ class PermissionChecker(Protocol):
         requires_approval: bool = False,
         approved: set[str] | None = None,
     ) -> PermissionDecision: ...
+
+
+def check_plugin_permission(
+    checker: PermissionChecker,
+    ctx: PermissionContext,
+    manifest: PluginManifest,
+    *,
+    action: str = "execute",
+    approved: set[str] | None = None,
+) -> PermissionDecision:
+    """Check a stable resource ID, falling back to its name for unmigrated legacy grants."""
+    resource_id = manifest.resource_id or manifest.name
+    has_stable_grant = any(
+        grant_type == manifest.kind and grant_id == resource_id
+        for grant_type, grant_id, _ in ctx.grant_keys
+    ) or any(
+        grant_type == manifest.kind and grant_id == resource_id
+        for grant_type, grant_id, _, _ in ctx.grant_actions
+    )
+    use_legacy_name = resource_id != manifest.name and not has_stable_grant
+    checked_resource_id = manifest.name if use_legacy_name else resource_id
+    legacy_approved = set(approved or ())
+    if use_legacy_name and resource_id in legacy_approved:
+        legacy_approved.add(manifest.name)
+    return checker.check(
+        ctx,
+        action,
+        manifest.kind,
+        checked_resource_id,
+        resource_permission=manifest.permission,
+        requires_approval=manifest.requires_approval,
+        approved=legacy_approved if use_legacy_name else approved,
+    )
 
 
 # --------------------------------------------------------------------------- memory

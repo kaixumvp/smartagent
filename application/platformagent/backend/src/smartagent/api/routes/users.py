@@ -23,7 +23,7 @@ from smartagent.api.schemas import (
     UserUpdateRequest,
 )
 from smartagent.api.security import get_current_user, hash_password, require_permission
-from smartagent.db.models import Role, User, UserRole
+from smartagent.db.models import ExternalIdentity, IdentityProvider, Role, User, UserRole
 from smartagent.db.session import get_db
 from smartagent.iam import rbac
 from smartagent.iam.permission_manager import Principal
@@ -46,7 +46,11 @@ def _invalid(message: str) -> HTTPException:
     return HTTPException(status_code=400, detail={"code": "INVALID_ARGUMENT", "message": message})
 
 
-def _to_out(user: User, roles: list[str]) -> UserOut:
+def _to_out(
+    user: User,
+    roles: list[str],
+    identity_providers: list[str] | None = None,
+) -> UserOut:
     return UserOut(
         id=user.id,
         tenant_id=user.tenant_id,
@@ -54,8 +58,34 @@ def _to_out(user: User, roles: list[str]) -> UserOut:
         name=user.name,
         status=user.status,
         roles=roles,
+        identity_providers=identity_providers or [],
         created_at=user.created_at,
     )
+
+
+async def _identity_providers_by_user(db: AsyncSession, tenant_id: str) -> dict[str, list[str]]:
+    identities = (
+        await db.execute(
+            select(ExternalIdentity).where(
+                ExternalIdentity.tenant_id == tenant_id,
+                ExternalIdentity.status == "active",
+            )
+        )
+    ).scalars().all()
+    providers = (
+        await db.execute(
+            select(IdentityProvider).where(IdentityProvider.tenant_id == tenant_id)
+        )
+    ).scalars().all()
+    provider_names = {provider.id: provider.display_name for provider in providers}
+    result: dict[str, list[str]] = {}
+    for identity in identities:
+        provider_name = provider_names.get(identity.provider_id)
+        if provider_name:
+            names = result.setdefault(identity.user_id, [])
+            if provider_name not in names:
+                names.append(provider_name)
+    return result
 
 
 async def _load_user(db: AsyncSession, user_id: str, principal: Principal) -> User:
@@ -146,8 +176,14 @@ async def list_users(
     users = (
         await db.execute(select(User).where(User.tenant_id == principal.tenant_id))
     ).scalars().all()
+    identity_providers = await _identity_providers_by_user(db, principal.tenant_id)
     return [
-        _to_out(u, await rbac.load_user_role_names(db, u.id, principal.tenant_id)) for u in users
+        _to_out(
+            u,
+            await rbac.load_user_role_names(db, u.id, principal.tenant_id),
+            identity_providers.get(u.id, []),
+        )
+        for u in users
     ]
 
 
@@ -159,7 +195,12 @@ async def get_user(
     _: None = Depends(require_permission("user:manage")),
 ):
     user = await _load_user(db, user_id, principal)
-    return _to_out(user, await rbac.load_user_role_names(db, user.id, principal.tenant_id))
+    identity_providers = await _identity_providers_by_user(db, principal.tenant_id)
+    return _to_out(
+        user,
+        await rbac.load_user_role_names(db, user.id, principal.tenant_id),
+        identity_providers.get(user.id, []),
+    )
 
 
 @router.patch("/{user_id}", response_model=UserOut)
@@ -197,7 +238,12 @@ async def update_user(
         trace_id=getattr(request.state, "trace_id", None),
         detail={"status": body.status, "roles": body.roles},
     )
-    return _to_out(user, await rbac.load_user_role_names(db, user.id, principal.tenant_id))
+    identity_providers = await _identity_providers_by_user(db, principal.tenant_id)
+    return _to_out(
+        user,
+        await rbac.load_user_role_names(db, user.id, principal.tenant_id),
+        identity_providers.get(user.id, []),
+    )
 
 
 @router.post("/{user_id}/password", response_model=UserOut)
@@ -228,4 +274,9 @@ async def reset_password(
         resource_id=user.id,
         trace_id=getattr(request.state, "trace_id", None),
     )
-    return _to_out(user, await rbac.load_user_role_names(db, user.id, principal.tenant_id))
+    identity_providers = await _identity_providers_by_user(db, principal.tenant_id)
+    return _to_out(
+        user,
+        await rbac.load_user_role_names(db, user.id, principal.tenant_id),
+        identity_providers.get(user.id, []),
+    )

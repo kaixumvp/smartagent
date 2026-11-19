@@ -264,6 +264,29 @@ async def list_agent_runs(
     return [_to_run_out(run, await _load_steps(db, run.id)) for run in runs]
 
 
+@router.get("/runs", response_model=list[RunOut])
+async def list_runs(
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+    _: None = Depends(require_permission("run:execute")),
+):
+    if not 1 <= limit <= 200:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "INVALID_ARGUMENT", "message": "limit must be between 1 and 200"},
+        )
+    runs = (
+        await db.execute(
+            select(Run)
+            .where(Run.tenant_id == principal.tenant_id)
+            .order_by(Run.created_at.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    return [_to_run_out(run, await _load_steps(db, run.id)) for run in runs]
+
+
 async def _stream_run(
     service: RunService,
     agent: Agent,

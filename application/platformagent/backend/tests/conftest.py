@@ -200,6 +200,12 @@ def _apply_order(rows: list, stmt) -> list:
     return ordered
 
 
+def _apply_limit(rows: list, stmt) -> list:
+    limit_clause = getattr(stmt, "_limit_clause", None)
+    limit = _bind_value(limit_clause)
+    return rows[:limit] if isinstance(limit, int) else rows
+
+
 class FakeSession:
     """In-memory AsyncSession good enough for route and service tests.
 
@@ -272,7 +278,7 @@ class FakeSession:
         if entity is None:
             return _FakeResult([])
         rows = [r for r in self._rows.get(entity, []) if _matches(r, stmt.whereclause)]
-        return _FakeResult(_apply_order(rows, stmt))
+        return _FakeResult(_apply_limit(_apply_order(rows, stmt), stmt))
 
     def _delete(self, stmt) -> list:
         table_name = stmt.table.name

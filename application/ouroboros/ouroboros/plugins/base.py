@@ -32,6 +32,11 @@ class ToolAsPlugin:
     def manifest(self) -> PluginManifest:
         return PluginManifest(
             name=self._tool.name,
+            resource_id=(
+                getattr(self._tool, "resource_id", None)
+                or getattr(self._tool, "id", None)
+                or self._tool.name
+            ),
             version="1",
             kind="tool",
             description=getattr(self._tool, "description", ""),

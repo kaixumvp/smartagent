@@ -116,6 +116,40 @@ def test_create_run_invalid_input():
     assert resp.json()["error"]["code"] == "INVALID_ARGUMENT"
 
 
+def test_list_runs_is_tenant_scoped_and_limited():
+    runs = [
+        Run(id="run_visible", agent_id="agent_test", tenant_id="default", input="visible", status="completed"),
+        Run(id="run_visible_second", agent_id="agent_test", tenant_id="default", input="visible too", status="completed"),
+        Run(id="run_other_tenant", agent_id="agent_test", tenant_id="other", input="hidden", status="completed"),
+    ]
+    fake_db = FakeSession(*runs)
+    _install_overrides(fake_db, MockLLMGateway([]), FakeMemoryManager())
+    try:
+        with TestClient(app) as client:
+            limited_response = client.get("/v1/runs?limit=1")
+            response = client.get("/v1/runs?limit=200")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert limited_response.status_code == 200
+    assert len(limited_response.json()) == 1
+    assert response.status_code == 200
+    assert {run["run_id"] for run in response.json()} == {"run_visible", "run_visible_second"}
+
+
+def test_list_runs_rejects_invalid_limit():
+    fake_db = FakeSession()
+    _install_overrides(fake_db, MockLLMGateway([]), FakeMemoryManager())
+    try:
+        with TestClient(app) as client:
+            response = client.get("/v1/runs?limit=0")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_ARGUMENT"
+
+
 def test_delete_completed_run_removes_steps_and_audits():
     run = Run(
         id="run_delete",
@@ -278,7 +312,7 @@ def test_create_run_pauses_on_high_risk_tool():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "awaiting_human"
-    assert data["pending_approvals"] == [{"resource_type": "tool", "resource_id": "delete_account"}]
+    assert data["pending_approvals"] == [{"resource_type": "tool", "resource_id": "tool_delete_account"}]
     assert data["result"] is None
     # A checkpoint must exist, or the approval below has nothing to resume from.
     assert fake_db.runs[0].checkpoint is not None
@@ -345,7 +379,7 @@ def test_approve_resumes_the_same_run():
     assert len(resumed["steps"]) > paused_steps
     # plan ran once across both requests; a replay would have produced a second one.
     assert [s["node"] for s in resumed["steps"]].count("plan") == 1
-    assert fake_db.runs[0].approvals == ["delete_account"]
+    assert fake_db.runs[0].approvals == ["tool_delete_account"]
     assert "run.approve" in fake_db.audit_actions()
 
     # The framework restarts its step counter on resume; `seq` is the run's whole timeline,

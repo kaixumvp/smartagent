@@ -3,8 +3,10 @@ from ouroboros.ports import (
     MemoryEntry,
     PermissionContext,
     PermissionDecision,
+    PluginManifest,
     Principal,
     check_permission,
+    check_plugin_permission,
 )
 
 
@@ -50,6 +52,72 @@ def test_high_risk_allowed_after_approval():
 
 def test_missing_run_execute_denied():
     assert check_permission(_ctx(codes={}), "execute", "tool", "calculator", "read", False) is PermissionDecision.DENY
+
+
+def test_action_specific_grants_are_enforced():
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_actions={("tool", "tool-1", "execute", "allow")},
+    )
+    assert check_permission(ctx, "execute", "tool", "tool-1", "read") is PermissionDecision.ALLOW
+    assert check_permission(ctx, "read", "tool", "tool-1", "read") is PermissionDecision.DENY
+
+
+def test_action_specific_deny_overrides_allow():
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_actions={
+            ("tool", "tool-1", "execute", "allow"),
+            ("tool", "tool-1", "execute", "deny"),
+        },
+    )
+    assert check_permission(ctx, "execute", "tool", "tool-1", "read") is PermissionDecision.DENY
+
+
+def test_plugin_permission_falls_back_to_legacy_name_grant():
+    class Checker:
+        resource_ids = []
+
+        def check(self, ctx, action, resource_type, resource_id, **kwargs):
+            self.resource_ids.append(resource_id)
+            return check_permission(ctx, action, resource_type, resource_id, **kwargs)
+
+    checker = Checker()
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_keys={("tool", "delete_account", "allow")},
+    )
+    manifest = PluginManifest(
+        name="delete_account",
+        resource_id="tool_delete_account",
+        kind="tool",
+        permission="admin",
+    )
+    assert check_plugin_permission(checker, ctx, manifest) is PermissionDecision.REQUIRE_APPROVAL
+    assert check_plugin_permission(
+        checker, ctx, manifest, approved={"tool_delete_account"}
+    ) is PermissionDecision.ALLOW
+    assert checker.resource_ids == ["delete_account", "delete_account"]
+
+
+def test_stable_plugin_deny_is_not_overridden_by_legacy_name_allow():
+    class Checker:
+        def check(self, ctx, action, resource_type, resource_id, **kwargs):
+            return check_permission(ctx, action, resource_type, resource_id, **kwargs)
+
+    ctx = PermissionContext(
+        permission_codes={"run:execute"},
+        grant_keys={
+            ("tool", "delete_account", "allow"),
+            ("tool", "tool_delete_account", "deny"),
+        },
+    )
+    manifest = PluginManifest(
+        name="delete_account",
+        resource_id="tool_delete_account",
+        kind="tool",
+    )
+    assert check_plugin_permission(Checker(), ctx, manifest) is PermissionDecision.DENY
 
 
 def test_principal_defaults():

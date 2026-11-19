@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from conftest import FakeSession, admin_principal, admin_permission_context
 from smartagent.api.security import get_current_user, get_permission_context, hash_password
-from smartagent.db.models import Role, User, UserRole
+from smartagent.db.models import ExternalIdentity, IdentityProvider, Role, User, UserRole
 from smartagent.db.session import get_db
 from smartagent.iam.permission_manager import PermissionContext, Principal
 from smartagent.main import app
@@ -117,6 +117,48 @@ def test_cross_tenant_user_is_404_not_403():
 
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
+
+
+def test_list_users_includes_only_active_identity_providers_from_their_tenant():
+    tenant_provider = IdentityProvider(
+        id="idp_default", tenant_id="default", provider_key="corp",
+        display_name="企业 OIDC", issuer="https://id.example.test",
+        client_id="client", client_secret_encrypted="encrypted", scopes=["openid"],
+    )
+    other_provider = IdentityProvider(
+        id="idp_other", tenant_id="t2", provider_key="other",
+        display_name="其他租户身份源", issuer="https://other.example.test",
+        client_id="client", client_secret_encrypted="encrypted", scopes=["openid"],
+    )
+    db = _seeded(
+        tenant_provider,
+        other_provider,
+        ExternalIdentity(
+            id="identity_active", tenant_id="default", provider_id="idp_default",
+            issuer=tenant_provider.issuer, subject="admin-subject", user_id="u_admin",
+            status="active",
+        ),
+        ExternalIdentity(
+            id="identity_inactive", tenant_id="default", provider_id="idp_default",
+            issuer=tenant_provider.issuer, subject="old-admin-subject", user_id="u_admin",
+            status="disabled",
+        ),
+        ExternalIdentity(
+            id="identity_other_tenant", tenant_id="t2", provider_id="idp_other",
+            issuer=other_provider.issuer, subject="foreign-subject", user_id="u_admin",
+            status="active",
+        ),
+    )
+    _install(db)
+    try:
+        with TestClient(app) as client:
+            resp = client.get("/v1/users")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    admin = next(user for user in resp.json() if user["id"] == "u_admin")
+    assert admin["identity_providers"] == ["企业 OIDC"]
 
 
 def test_update_replaces_the_whole_role_set():

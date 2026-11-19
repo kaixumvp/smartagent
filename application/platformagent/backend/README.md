@@ -70,15 +70,17 @@ all three. Adapters never import `services` — the sub-agent cycle is broken by
 # Run from application/platformagent/backend
 # PowerShell; copy only if you do not already have a configured .env
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker network inspect capability-internal *> $null
-if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
+foreach ($network in @("capability-internal", "public-gateway")) {
+  docker network inspect $network *> $null
+  if ($LASTEXITCODE -ne 0) { docker network create $network }
+}
 docker compose up --build -d
 docker compose ps
 ```
 
 Compose starts PostgreSQL + pgvector, Redis, the API, and the production-built React
 console. It waits for the database, applies Alembic migrations, then starts the API and
-console. The API is at `http://localhost:8000`, the console at `http://localhost:3000`,
+console. The API is at `http://localhost:8000`, the console at `http://localhost`,
 and the API reference at `http://localhost:8000/docs`.
 
 Before starting, set a strong `JWT_SECRET` and `BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
@@ -89,19 +91,67 @@ in the Registry. The Compose stacks share the `capability-internal` Docker netwo
 For a Registry running directly on the host, the container can reach it at
 `http://host.docker.internal:8010`.
 
+### Generic OIDC login (optional)
+
+PlatformAgent supports tenant-admin-configured OIDC Authorization Code + PKCE. It does not
+auto-create local accounts or assign roles from external claims. An administrator must first
+create the local user and assign roles, then the user signs into that local account and binds
+their external identity. Existing password login stays available.
+
+Configure these values in the backend `.env` before enabling a provider:
+
+```dotenv
+OIDC_ENCRYPTION_KEY=<Fernet key; generate with python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
+OIDC_ALLOWED_HOSTS=["your-idp.example.com"]
+OIDC_PUBLIC_BASE_URL=https://your-public-platform.example.com
+```
+
+The public base URL must be HTTPS and match the registered IdP callback:
+`https://your-public-platform.example.com/v1/auth/oidc/callback`.
+`OIDC_ALLOWED_HOSTS` must cover the issuer, authorization, token, and JWKS endpoint hosts.
+Keep the encryption key stable and back it up securely; rotating it requires re-encrypting
+stored client secrets and active PKCE verifiers.
+
+Admin API (`Authorization: Bearer <admin JWT>`):
+
+- `POST /v1/auth/oidc/providers` — configure `provider_key`, `display_name`, `issuer`,
+  `client_id`, `client_secret`, and scopes (must include `openid`).
+- `GET /v1/auth/oidc/providers` — list tenant providers (secrets are never returned).
+- `PATCH /v1/auth/oidc/providers/{provider_id}` — rotate client secret, scopes, status or display name.
+- `DELETE /v1/auth/oidc/providers/{provider_id}` — remove provider and linked identities.
+
+Account binding and login:
+
+1. Sign in with the user's existing PlatformAgent password account.
+2. With that bearer token, call `POST /v1/auth/oidc/{provider_id}/link` with the current
+   local password; open the returned `authorization_url` in the same browser session (the
+   response sets an HttpOnly transaction cookie).
+3. After successful binding, use `GET /v1/auth/oidc/{provider_id}/authorize` to authenticate;
+   the callback returns the PlatformAgent bearer token response.
+4. `GET /v1/auth/oidc/providers/{tenant_id}` lists active provider choices for a login page.
+
+Unlinked identities are denied, even when their email matches a local user. OIDC group/role
+claims are intentionally ignored. This release does not implement SCIM, vendor directories,
+SAML, refresh tokens, or JWT revocation.
+
 ## Deploying to Aliyun ECS
 
-The repository workflow `.github/workflows/deploy-platformagent.yml` builds the backend and
-frontend images and deploys them to `/opt/platformagent` over SSH when `main` receives changes
-under `application/platformagent/` or `application/ouroboros/`. Configure the same GitHub
-Actions secrets listed in the [Capability deployment guide](../../capability/README.md#2-configure-github-actions)
+The unified repository workflow `.github/workflows/deploy.yml` builds and deploys only the
+application changed by a push to `refactor/ouroboros-prune`. Run **Deploy SmartAgent** manually
+with target `all` for the first deployment; later manual runs can target either application.
+Configure the GitHub Actions secrets listed in the
+[Capability deployment guide](../../capability/README.md#2-configure-github-actions)
 (`ALIYUN_HOST`, `ALIYUN_USER`, `ALIYUN_SSH_PRIVATE_KEY`, and `ALIYUN_KNOWN_HOSTS`); optional
-`ALIYUN_SSH_PORT` is an Actions variable. The deployment account needs Docker access and write
-permission to `/opt/platformagent`.
+`ALIYUN_SSH_PORT` is an Actions variable. Also configure `ACR_REGISTRY` with the full
+`<registry-host>/<namespace>/<repository>` address and the four ACR credentials listed in that
+guide. Actions pushes uniquely tagged images to that repository; ECS logs in with the read-only
+credential, pulls the images, and starts Compose without building. The deployment account needs
+Docker access and write permission to `/opt/platformagent` and `/opt/capability`.
 
 Before the first deploy, create `/opt/platformagent/platformagent/backend/.env` on the ECS;
 the workflow intentionally does not copy local environment files. Use the settings in
-[`.env.example`](./.env.example) as a template. Set `PLATFORM_BIND_ADDRESS=127.0.0.1`, a random hexadecimal
+[`.env.example`](./.env.example) as a template. Set `PLATFORM_BIND_ADDRESS=0.0.0.0` to publish the
+shared gateway on port 80, or `127.0.0.1` to keep it private; also set a random hexadecimal
 `POSTGRES_PASSWORD`, a `JWT_SECRET` with at least 32 characters, and a strong
 `BOOTSTRAP_ADMIN_PASSWORD`. Set the LLM API key if agents should make LLM calls. For
 Capability integration, use `CAPABILITY_REGISTRY_URL=http://capability-backend:8000` and the
@@ -110,15 +160,20 @@ does not upload local environment files. Existing database volumes retain their 
 PostgreSQL password, so changing `POSTGRES_PASSWORD` requires changing the database role
 password too.
 
-Both Compose stacks publish their ports only on the ECS loopback interface in deployment mode.
-Use an SSH tunnel or an HTTPS reverse proxy with authentication; do not expose the API or
-console ports directly to the Internet. On first startup, Alembic applies database migrations
+The PlatformAgent frontend is the shared Nginx gateway: `/` serves PlatformAgent and
+`/capability/` proxies to Capability. To make both available on the public IP, allow only TCP 80
+in the ECS security group; the application API, database, Redis, and Capability's convenience
+port remain private. On first startup, Alembic applies database migrations
 and seeds the initial admin account. Change that account's password immediately after logging
 in. Services restart automatically after ECS reboots.
 
-If Capability is also being deployed, run the Capability deployment workflow so its backend
-joins the shared Docker network. Then both backends can reach each other by their Compose
-network aliases without exposing the internal API port on the public interface.
+The shared gateway currently uses HTTP. For production, terminate HTTPS at a trusted reverse
+proxy/load balancer or configure TLS before exposing it broadly. Never expose ports 5432, 6379,
+8000, 8010, or 3010 publicly.
+
+Both frontends and backends join the shared Docker networks through the unified workflow.
+PlatformAgent reaches Capability at `http://capability-backend:8000`; the gateway reaches its
+frontend at `http://capability-frontend:80`.
 
 `docker compose down` stops the services and preserves database data. Do not use
 `docker compose down -v` unless you intend to delete the database volume.
@@ -128,8 +183,10 @@ network aliases without exposing the internal API port on the public interface.
 ```bash
 # Run from application/platformagent/backend
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker network inspect capability-internal *> $null
-if ($LASTEXITCODE -ne 0) { docker network create capability-internal }
+foreach ($network in @("capability-internal", "public-gateway")) {
+  docker network inspect $network *> $null
+  if ($LASTEXITCODE -ne 0) { docker network create $network }
+}
 docker compose up -d postgres redis
 poetry install
 poetry run alembic upgrade head

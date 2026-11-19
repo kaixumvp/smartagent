@@ -8,7 +8,12 @@ from ouroboros.observability.metrics import noop_metrics
 from ouroboros.observability.trace import default_tracer
 from ouroboros.plugins.base import InvokeContext
 from ouroboros.plugins.registry import PluginRegistry
-from ouroboros.ports import PermissionChecker, PermissionContext, PermissionDecision
+from ouroboros.ports import (
+    PermissionChecker,
+    PermissionContext,
+    PermissionDecision,
+    check_plugin_permission,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +42,10 @@ def _single_call(state: AgentState, action: str) -> list[dict]:
 def _authorize(manifest, permission_manager, permission_context, approved) -> PermissionDecision:
     if permission_manager is None or permission_context is None:
         return PermissionDecision.ALLOW
-    return permission_manager.check(
+    return check_plugin_permission(
+        permission_manager,
         permission_context,
-        "execute",
-        manifest.kind,
-        manifest.name,
-        resource_permission=manifest.permission,
-        requires_approval=manifest.requires_approval,
+        manifest,
         approved=approved,
     )
 
@@ -79,7 +81,7 @@ async def run_execute(
         if decision == PermissionDecision.REQUIRE_APPROVAL:
             pending.append({
                 "resource_type": plugin.manifest.kind,
-                "resource_id": plugin.manifest.name,
+                "resource_id": plugin.manifest.resource_id or plugin.manifest.name,
                 "action": call["name"],
             })
 

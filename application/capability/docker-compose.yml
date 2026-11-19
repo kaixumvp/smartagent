@@ -9,7 +9,7 @@ services:
     ports:
       # Host port shifted off 5432 so this stack can run alongside the business layer's
       # postgres (application/platformagent/backend/docker-compose.yml), which owns 5432.
-      - "${CAPABILITY_BIND_ADDRESS:-0.0.0.0}:5433:5432"
+      - "${CAPABILITY_DB_BIND_ADDRESS:-127.0.0.1}:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +19,7 @@ services:
       retries: 10
 
   backend:
-    image: capability-backend:${CAPABILITY_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local/smartagent}:${CAPABILITY_IMAGE_TAG:-latest}-capability-backend
     build: ./backend
     restart: unless-stopped
     environment:
@@ -30,7 +30,7 @@ services:
       AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-true}
     ports:
       # Host port shifted off 8000, which is where the business layer's uvicorn runs.
-      - "${CAPABILITY_BIND_ADDRESS:-0.0.0.0}:8010:8000"
+      - "${CAPABILITY_BACKEND_BIND_ADDRESS:-127.0.0.1}:8010:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -47,21 +47,28 @@ services:
     restart: unless-stopped
     ports:
       # 6380 instead of 6379: the business layer's Redis owns 6379.
-      - "${CAPABILITY_BIND_ADDRESS:-0.0.0.0}:6380:6379"
+      - "${CAPABILITY_REDIS_BIND_ADDRESS:-127.0.0.1}:6380:6379"
 
   frontend:
-    image: capability-frontend:${CAPABILITY_IMAGE_TAG:-latest}
+    image: ${ACR_REGISTRY:-local/smartagent}:${CAPABILITY_IMAGE_TAG:-latest}-capability-frontend
     build: ./frontend
     restart: unless-stopped
     ports:
-      # 3010 instead of 3000 to stay clear of the console and other dev servers.
-      - "${CAPABILITY_BIND_ADDRESS:-0.0.0.0}:3010:80"
+      # Loopback-only convenience port; public access goes through the PlatformAgent gateway.
+      - "127.0.0.1:3010:80"
     depends_on:
       - backend
+    networks:
+      default: {}
+      public-gateway:
+        aliases:
+          - capability-frontend
 
 volumes:
   pgdata:
 
 networks:
   capability-internal:
+    external: true
+  public-gateway:
     external: true

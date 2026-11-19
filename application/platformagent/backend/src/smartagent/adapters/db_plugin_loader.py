@@ -220,6 +220,7 @@ class PluginLoader:
         return self._skill_manager.build(
             {
                 "name": row.name,
+                "resource_id": row.id,
                 "version": row.version,
                 "type": row.type,
                 "description": row.description,

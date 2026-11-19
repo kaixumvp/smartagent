@@ -1,0 +1,360 @@
+name: Deploy SmartAgent
+
+on:
+  push:
+    branches:
+      - refactor/ouroboros-prune
+    paths:
+      - "application/capability/**"
+      - "application/knowledge/**"
+      - "application/platformagent/**"
+      - "application/ouroboros/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Which application to deploy
+        required: true
+        type: choice
+        options:
+          - all
+          - platformagent
+          - capability
+          - knowledge
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smartagent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect deployment targets
+        id: targets
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DEPLOY_TARGET: ${{ inputs.deploy_target }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          platform=false
+          capability=false
+          knowledge=false
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            case "$DEPLOY_TARGET" in
+              all)
+                platform=true
+                capability=true
+                knowledge=true
+                ;;
+              platformagent)
+                platform=true
+                ;;
+              capability)
+                capability=true
+                ;;
+              knowledge)
+                knowledge=true
+                ;;
+              *)
+                echo "Unsupported deploy target: $DEPLOY_TARGET" >&2
+                exit 1
+                ;;
+            esac
+          else
+            if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+              changed_files="$(git show --format= --name-only "$CURRENT_SHA")"
+            else
+              changed_files="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")"
+            fi
+            printf '%s\n' "$changed_files"
+            if grep -Eq '^(application/platformagent/|application/ouroboros/|\.github/workflows/deploy\.yml$)' <<<"$changed_files"; then
+              platform=true
+            fi
+            if grep -Eq '^(application/capability/|\.github/workflows/deploy\.yml$)' <<<"$changed_files"; then
+              capability=true
+            fi
+            if grep -Eq '^(application/knowledge/|\.github/workflows/deploy\.yml$)' <<<"$changed_files"; then
+              knowledge=true
+            fi
+          fi
+
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
+          echo "capability=$capability" >> "$GITHUB_OUTPUT"
+          echo "knowledge=$knowledge" >> "$GITHUB_OUTPUT"
+          knowledge_version="$(sed -n '/| `knowledge` (Knowledge Hub) |/s/.*\*\*\([0-9][0-9.]*\)\*\*.*/\1/p' VERSIONS.md)"
+          if [[ -z "$knowledge_version" ]]; then
+            echo "Could not read the Knowledge version from VERSIONS.md" >&2
+            exit 1
+          fi
+          knowledge_image_tag="v${knowledge_version}-build.${GITHUB_RUN_NUMBER}"
+          echo "knowledge_image_tag=$knowledge_image_tag" >> "$GITHUB_OUTPUT"
+          echo "PlatformAgent deployment: $platform"
+          echo "Capability deployment: $capability"
+          echo "Knowledge deployment: $knowledge"
+          echo "Knowledge image tag: $knowledge_image_tag"
+
+      - name: Log in to Aliyun Container Registry
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true' || steps.targets.outputs.knowledge == 'true'
+        shell: bash
+        env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ACR_REGISTRY" || { echo "Set the ACR_REGISTRY Actions variable" >&2; exit 1; }
+          test -n "$ACR_USERNAME" || { echo "Set the ACR_USERNAME Actions secret" >&2; exit 1; }
+          test -n "$ACR_PASSWORD" || { echo "Set the ACR_PASSWORD Actions secret" >&2; exit 1; }
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>/<repository>" >&2
+            exit 1
+          }
+          ACR_HOST="${ACR_REGISTRY%%/*}"
+          printf '%s' "$ACR_PASSWORD" | docker login "$ACR_HOST" \
+            --username "$ACR_USERNAME" \
+            --password-stdin
+
+      - name: Build and push changed application images
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true' || steps.targets.outputs.knowledge == 'true'
+        shell: bash
+        env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          PLATFORM_CHANGED: ${{ steps.targets.outputs.platform }}
+          CAPABILITY_CHANGED: ${{ steps.targets.outputs.capability }}
+          KNOWLEDGE_CHANGED: ${{ steps.targets.outputs.knowledge }}
+          KNOWLEDGE_IMAGE_TAG: ${{ steps.targets.outputs.knowledge_image_tag }}
+        run: |
+          set -euo pipefail
+          platform_env_file="application/platformagent/backend/.env"
+          created_platform_env_file=false
+          if [[ "$PLATFORM_CHANGED" == "true" && ! -e "$platform_env_file" ]]; then
+            : > "$platform_env_file"
+            created_platform_env_file=true
+          fi
+          cleanup() {
+            if [[ "$created_platform_env_file" == "true" ]]; then
+              rm -f -- "$platform_env_file"
+            fi
+          }
+          trap cleanup EXIT
+
+          if [[ "$PLATFORM_CHANGED" == "true" ]]; then
+            ACR_REGISTRY="$ACR_REGISTRY" PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/platformagent/backend/docker-compose.yml \
+              build backend frontend
+            ACR_REGISTRY="$ACR_REGISTRY" PLATFORM_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/platformagent/backend/docker-compose.yml \
+              push backend frontend
+          fi
+
+          if [[ "$CAPABILITY_CHANGED" == "true" ]]; then
+            ACR_REGISTRY="$ACR_REGISTRY" CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/capability/docker-compose.yml \
+              build backend frontend
+            ACR_REGISTRY="$ACR_REGISTRY" CAPABILITY_IMAGE_TAG="$GITHUB_SHA" docker compose \
+              --file application/capability/docker-compose.yml \
+              push backend frontend
+          fi
+
+          if [[ "$KNOWLEDGE_CHANGED" == "true" ]]; then
+            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$KNOWLEDGE_IMAGE_TAG" docker compose \
+              --file application/knowledge/docker-compose.yml \
+              build backend frontend
+            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$KNOWLEDGE_IMAGE_TAG" docker compose \
+              --file application/knowledge/docker-compose.yml \
+              push backend frontend
+          fi
+
+      - name: Configure SSH
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true' || steps.targets.outputs.knowledge == 'true'
+        shell: bash
+        env:
+          ALIYUN_SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_PRIVATE_KEY }}
+          ALIYUN_KNOWN_HOSTS: ${{ secrets.ALIYUN_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_SSH_PRIVATE_KEY"
+          test -n "$ALIYUN_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ALIYUN_SSH_PRIVATE_KEY" > "$HOME/.ssh/smartagent_deploy"
+          chmod 600 "$HOME/.ssh/smartagent_deploy"
+          printf '%s\n' "$ALIYUN_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload and deploy changed applications
+        if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true' || steps.targets.outputs.knowledge == 'true'
+        timeout-minutes: 35
+        shell: bash
+        env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          ACR_PULL_USERNAME: ${{ secrets.ACR_PULL_USERNAME }}
+          ACR_PULL_PASSWORD: ${{ secrets.ACR_PULL_PASSWORD }}
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_SSH_PORT: ${{ vars.ALIYUN_SSH_PORT }}
+          DEPLOY_PLATFORM: ${{ steps.targets.outputs.platform }}
+          DEPLOY_CAPABILITY: ${{ steps.targets.outputs.capability }}
+          DEPLOY_KNOWLEDGE: ${{ steps.targets.outputs.knowledge }}
+          KNOWLEDGE_IMAGE_TAG: ${{ steps.targets.outputs.knowledge_image_tag }}
+        run: |
+          set -euo pipefail
+          test -n "$ALIYUN_HOST"
+          test -n "$ALIYUN_USER"
+          test -n "$ACR_PULL_USERNAME"
+          test -n "$ACR_PULL_PASSWORD"
+          [[ "$ACR_REGISTRY" =~ ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$ ]] || {
+            echo "ACR_REGISTRY must be <registry-host>/<namespace>/<repository>" >&2
+            exit 1
+          }
+          ACR_HOST="${ACR_REGISTRY%%/*}"
+          SSH_PORT="${ALIYUN_SSH_PORT:-22}"
+          SSH=(ssh -i "$HOME/.ssh/smartagent_deploy" -p "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
+          SCP=(scp -i "$HOME/.ssh/smartagent_deploy" -P "$SSH_PORT" -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
+          TARGET="${ALIYUN_USER}@${ALIYUN_HOST}"
+
+          printf '%s' "$ACR_PULL_PASSWORD" | "${SSH[@]}" "$TARGET" \
+            "docker login '$ACR_HOST' --username $(printf '%q' "$ACR_PULL_USERNAME") --password-stdin"
+          "${SSH[@]}" "$TARGET" "mkdir -p /opt/platformagent/platformagent/backend /opt/capability /opt/knowledge"
+
+          if [[ "$DEPLOY_PLATFORM" == "true" ]]; then
+            echo "Uploading PlatformAgent Compose configuration"
+            "${SCP[@]}" application/platformagent/backend/docker-compose.yml \
+              "$TARGET:/opt/platformagent/platformagent/backend/docker-compose.yml"
+          fi
+
+          if [[ "$DEPLOY_CAPABILITY" == "true" ]]; then
+            echo "Uploading Capability Compose configuration"
+            "${SCP[@]}" application/capability/docker-compose.yml \
+              "$TARGET:/opt/capability/docker-compose.yml"
+          fi
+
+          if [[ "$DEPLOY_KNOWLEDGE" == "true" ]]; then
+            echo "Uploading Knowledge Compose configuration"
+            "${SCP[@]}" application/knowledge/docker-compose.yml \
+              "$TARGET:/opt/knowledge/docker-compose.yml"
+          fi
+
+          printf -v REMOTE_ARGS '%q ' "$GITHUB_SHA" "$DEPLOY_PLATFORM" "$DEPLOY_CAPABILITY" "$DEPLOY_KNOWLEDGE" "$KNOWLEDGE_IMAGE_TAG" "$ACR_REGISTRY"
+          "${SSH[@]}" "$TARGET" "bash -s -- $REMOTE_ARGS" <<'REMOTE'
+          set -euo pipefail
+          image_tag="$1"
+          deploy_platform="$2"
+          deploy_capability="$3"
+          deploy_knowledge="$4"
+          knowledge_image_tag="$5"
+          acr_registry="$6"
+          platform_dir="/opt/platformagent"
+          capability_dir="/opt/capability"
+          knowledge_dir="/opt/knowledge"
+          platform_compose="${platform_dir}/platformagent/backend/docker-compose.yml"
+          capability_compose="${capability_dir}/docker-compose.yml"
+          knowledge_compose="${knowledge_dir}/docker-compose.yml"
+
+          on_error() {
+            status=$?
+            echo "Deployment failed at line ${BASH_LINENO[0]} (exit ${status})" >&2
+            if [[ "$deploy_capability" == "true" && -f "$capability_compose" ]]; then
+              docker compose --project-directory "$capability_dir" --file "$capability_compose" ps -a >&2 || true
+            fi
+            if [[ "$deploy_platform" == "true" && -f "$platform_compose" ]]; then
+              docker compose --project-directory "${platform_dir}/platformagent/backend" --file "$platform_compose" ps -a >&2 || true
+            fi
+            if [[ "$deploy_knowledge" == "true" && -f "$knowledge_compose" ]]; then
+              docker compose --project-directory "$knowledge_dir" --file "$knowledge_compose" ps -a >&2 || true
+            fi
+            exit "$status"
+          }
+          trap on_error ERR
+
+          docker network inspect capability-internal >/dev/null 2>&1 || docker network create capability-internal
+          docker network inspect public-gateway >/dev/null 2>&1 || docker network create public-gateway
+
+          if [[ "$deploy_capability" == "true" ]]; then
+            test -f "${capability_dir}/.env" || {
+              echo "Missing ${capability_dir}/.env" >&2
+              exit 1
+            }
+            grep -Eq '^POSTGRES_PASSWORD=.+$' "${capability_dir}/.env" || {
+              echo "Set POSTGRES_PASSWORD in ${capability_dir}/.env" >&2
+              exit 1
+            }
+            grep -Eq '^MCP_AUTH_ENCRYPTION_KEY=.+$' "${capability_dir}/.env" || {
+              echo "Set MCP_AUTH_ENCRYPTION_KEY in ${capability_dir}/.env" >&2
+              exit 1
+            }
+            ACR_REGISTRY="$acr_registry" CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "$capability_dir" \
+              --file "$capability_compose" \
+              pull backend frontend
+            ACR_REGISTRY="$acr_registry" CAPABILITY_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "$capability_dir" \
+              --file "$capability_compose" \
+              up -d --no-build --remove-orphans
+            docker compose --project-directory "$capability_dir" --file "$capability_compose" ps
+          fi
+
+          if [[ "$deploy_platform" == "true" ]]; then
+            platform_env="${platform_dir}/platformagent/backend/.env"
+            test -f "$platform_env" || {
+              echo "Missing ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^PLATFORM_BIND_ADDRESS=(127\.0\.0\.1|0\.0\.0\.0)$' "$platform_env" || {
+              echo "Set PLATFORM_BIND_ADDRESS to 127.0.0.1 or 0.0.0.0 in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^POSTGRES_PASSWORD=.+$' "$platform_env" || {
+              echo "Set POSTGRES_PASSWORD in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^JWT_SECRET=.{32,}$' "$platform_env" || {
+              echo "Set a JWT_SECRET of at least 32 characters in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^BOOTSTRAP_ADMIN_PASSWORD=.+$' "$platform_env" || {
+              echo "Set BOOTSTRAP_ADMIN_PASSWORD in ${platform_env}" >&2
+              exit 1
+            }
+            grep -Eq '^CAPABILITY_REGISTRY_URL=http://capability-backend:8000/?$' "$platform_env" || {
+              echo "Set CAPABILITY_REGISTRY_URL=http://capability-backend:8000 in ${platform_env}" >&2
+              exit 1
+            }
+            ACR_REGISTRY="$acr_registry" PLATFORM_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "${platform_dir}/platformagent/backend" \
+              --file "$platform_compose" \
+              pull migrate backend frontend
+            ACR_REGISTRY="$acr_registry" PLATFORM_IMAGE_TAG="$image_tag" docker compose \
+              --project-directory "${platform_dir}/platformagent/backend" \
+              --file "$platform_compose" \
+              up -d --no-build --remove-orphans
+            docker compose --project-directory "${platform_dir}/platformagent/backend" --file "$platform_compose" ps
+          fi
+
+          if [[ "$deploy_knowledge" == "true" ]]; then
+            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$knowledge_image_tag" docker compose \
+              --project-directory "$knowledge_dir" \
+              --file "$knowledge_compose" \
+              pull backend frontend
+            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$knowledge_image_tag" docker compose \
+              --project-directory "$knowledge_dir" \
+              --file "$knowledge_compose" \
+              up -d --no-build --remove-orphans
+            docker compose --project-directory "$knowledge_dir" --file "$knowledge_compose" ps
+          fi
+
+          REMOTE

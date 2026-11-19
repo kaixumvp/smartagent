@@ -38,6 +38,69 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
 
 
+class IdentityProvider(Base):
+    __tablename__ = "identity_providers"
+    __table_args__ = (Index("uq_identity_providers_key", "tenant_id", "provider_key", unique=True),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    provider_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    issuer: Mapped[str] = mapped_column(String(512), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    client_secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    scopes: Mapped[list] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
+    created_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ExternalIdentity(Base):
+    __tablename__ = "external_identities"
+    __table_args__ = (
+        Index("uq_external_identities_subject", "provider_id", "issuer", "subject", unique=True),
+        Index("idx_external_identities_user", "tenant_id", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("identity_providers.id", ondelete="CASCADE"), nullable=False
+    )
+    issuer: Mapped[str] = mapped_column(String(512), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    email_snapshot: Mapped[str | None] = mapped_column(String(320))
+    display_name_snapshot: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
+    linked_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    last_login_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class OidcTransaction(Base):
+    __tablename__ = "oidc_transactions"
+    __table_args__ = (
+        Index("uq_oidc_transactions_state_hash", "state_hash", unique=True),
+        Index("idx_oidc_transactions_expiry", "expires_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    provider_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("identity_providers.id", ondelete="CASCADE"), nullable=False
+    )
+    state_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    nonce_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    pkce_verifier_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    browser_binding_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    link_user_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("users.id", ondelete="CASCADE"))
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
+
 class Role(Base):
     __tablename__ = "roles"
     __table_args__ = (Index("uq_roles_tenant_name", "tenant_id", "name", unique=True),)
@@ -84,7 +147,7 @@ class Grant(Base):
     principal_id: Mapped[str] = mapped_column(String(64), nullable=False)
     resource_type: Mapped[str] = mapped_column(String(16), nullable=False)  # tool | skill | agent | knowledge
     resource_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    action: Mapped[str] = mapped_column(String(16), nullable=False)  # execute | read | write | admin
+    action: Mapped[str] = mapped_column(String(16), nullable=False)  # execute | legacy wildcard *
     effect: Mapped[str] = mapped_column(String(8), nullable=False, default="allow", server_default="allow")  # allow | deny
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
 

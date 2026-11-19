@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartAgent IAM Console · 原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: #172d3d;
+      background: #f3f6f8;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --ink: #172d3d;
+      --muted: #81919c;
+      --line: #e7edf1;
+      --paper: #fff;
+      --nav: #1d2b2a;
+      --teal: #158b83;
+      --teal-light: #e6f5f2;
+      --coral: #d75d5d;
+      --gold: #d89042;
+      --shadow: 0 12px 32px rgb(22 46 62 / 5%);
+    }
+
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100vh; margin: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      position: sticky; top: 0; display: flex; flex: 0 0 248px; flex-direction: column;
+      height: 100vh; padding: 25px 16px 18px; color: #e9eee9; background: var(--nav);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 9px 26px; }
+    .brand-mark {
+      display: grid; width: 31px; height: 31px; place-items: center; border-radius: 9px;
+      color: #fff; background: #168d82; font-size: 15px; font-weight: 800;
+    }
+    .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.3px; }
+    .brand-tag {
+      margin-left: auto; padding: 4px 6px; border: 1px solid #53615b; border-radius: 5px;
+      color: #aab8ae; font-size: 8px; letter-spacing: 1px;
+    }
+    .tenant {
+      display: flex; align-items: center; gap: 10px; padding: 11px 10px; margin-bottom: 27px;
+      border: 1px solid #3b4943; border-radius: 9px; background: #253531;
+    }
+    .tenant-mark { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; color: #b7ece3; background: #285d56; font-weight: 700; }
+    .tenant-copy { min-width: 0; flex: 1; }
+    .tenant-copy strong, .tenant-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tenant-copy strong { font-size: 11px; }
+    .tenant-copy small { margin-top: 3px; color: #9baa9f; font-size: 9px; }
+    .chevron { color: #9baa9f; font-size: 14px; }
+    .nav-label { padding: 0 11px; margin: 0 0 8px; color: #82938a; font-size: 9px; font-weight: 700; letter-spacing: 1.1px; }
+    .nav-list { display: grid; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 11px;
+      border: 0; border-radius: 7px; color: #b7c3bb; background: transparent; text-align: left; font-size: 11px;
+    }
+    .nav-item:hover { color: #fff; background: #293a35; }
+    .nav-item.active { color: #fff; background: #2c423b; box-shadow: inset 2px 0 #53c3b0; }
+    .nav-icon { display: grid; width: 16px; place-items: center; color: #91a49a; font-size: 14px; }
+    .nav-item.active .nav-icon { color: #70d2c1; }
+    .nav-count { margin-left: auto; color: #84968c; font-size: 9px; }
+    .sidebar-bottom { margin-top: auto; }
+    .security-note { padding: 12px; margin: 0 4px 14px; border: 1px solid #3a4942; border-radius: 8px; background: #24342f; }
+    .security-note strong { display: flex; align-items: center; gap: 6px; color: #b7e5d6; font-size: 10px; }
+    .security-note p { margin: 7px 0 0; color: #9aa99f; font-size: 9px; line-height: 1.6; }
+    .profile { display: flex; align-items: center; gap: 9px; padding: 13px 7px 0; border-top: 1px solid #3a4942; }
+    .avatar { display: grid; flex: 0 0 auto; width: 31px; height: 31px; place-items: center; border-radius: 50%; color: #315d56; background: #d9eee8; font-size: 10px; font-weight: 750; }
+    .profile-copy { min-width: 0; flex: 1; }
+    .profile-copy strong, .profile-copy small { display: block; }
+    .profile-copy strong { font-size: 10px; }
+    .profile-copy small { margin-top: 3px; color: #9baa9f; font-size: 9px; }
+    .profile-menu { color: #94a49a; }
+    .main { flex: 1; min-width: 0; }
+    .topbar {
+      display: flex; height: 60px; align-items: center; justify-content: space-between; padding: 0 34px;
+      border-bottom: 1px solid var(--line); background: #fff;
+    }
+    .crumb { display: flex; gap: 9px; align-items: center; color: #a0adb5; font-size: 10px; }
+    .crumb strong { color: #4b606e; font-weight: 650; }
+    .top-actions { display: flex; align-items: center; gap: 15px; }
+    .env-pill { display: flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid #dfece7; border-radius: 20px; color: #448274; background: #f6fbf9; font-size: 9px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #49af85; }
+    .top-icon { color: #85949e; font-size: 14px; }
+    .content { width: min(1280px, 100%); padding: 27px 34px 42px; margin: 0 auto; }
+    .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 21px; }
+    .eyebrow { color: #4a9286; font-size: 9px; font-weight: 750; letter-spacing: 1.3px; }
+    h1 { margin: 7px 0 5px; color: #183143; font-size: 23px; letter-spacing: -.7px; }
+    .page-heading p { margin: 0; color: #8797a0; font-size: 11px; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .button {
+      display: inline-flex; min-height: 33px; align-items: center; justify-content: center; gap: 7px;
+      padding: 0 12px; border: 1px solid #dce5e9; border-radius: 6px; color: #526977; background: #fff;
+      font-size: 10px; font-weight: 650; transition: .15s ease;
+    }
+    .button:hover { border-color: #9fcfc4; color: #277c70; }
+    .button.primary { border-color: #178c80; color: #fff; background: #178c80; box-shadow: 0 4px 10px #178c8022; }
+    .button.primary:hover { background: #11766d; }
+    .button.ghost { border-color: transparent; background: transparent; }
+    .button.danger { color: #c45454; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 17px; }
+    .stat {
+      display: flex; min-height: 83px; align-items: center; gap: 12px; padding: 14px 15px;
+      border: 1px solid var(--line); border-radius: 9px; background: var(--paper); box-shadow: var(--shadow);
+    }
+    .stat-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: #258f81; background: #eaf6f3; font-size: 14px; }
+    .stat-icon.purple { color: #7564a7; background: #f0eef9; }
+    .stat-icon.amber { color: #c38437; background: #fbf3e8; }
+    .stat-icon.red { color: #ca6762; background: #fbefed; }
+    .stat-copy small, .stat-copy strong { display: block; }
+    .stat-copy small { color: #8b9aa2; font-size: 9px; }
+    .stat-copy strong { margin-top: 5px; color: #203b4b; font-size: 20px; font-weight: 720; letter-spacing: -.5px; }
+    .stat-copy em { margin-left: 5px; color: #3b9b76; font-size: 8px; font-style: normal; font-weight: 600; }
+    .panel { border: 1px solid var(--line); border-radius: 9px; background: #fff; box-shadow: var(--shadow); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 18px 13px; }
+    .panel-title { color: #1e3a4b; font-size: 12px; font-weight: 700; }
+    .panel-subtitle { margin-top: 4px; color: #91a0a8; font-size: 9px; }
+    .filters { display: flex; align-items: center; gap: 8px; padding: 0 18px 14px; }
+    .search { position: relative; flex: 1; max-width: 300px; }
+    .search span { position: absolute; top: 8px; left: 10px; color: #9aa8b0; font-size: 12px; }
+    .control {
+      width: 100%; height: 32px; padding: 0 10px; border: 1px solid #e1e8ec; border-radius: 6px;
+      outline: none; color: #4c6270; background: #fff; font-size: 10px;
+    }
+    .search .control { padding-left: 29px; }
+    .control:focus { border-color: #8dcabd; box-shadow: 0 0 0 3px #178c8012; }
+    select.control { width: auto; min-width: 118px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    th { height: 34px; padding: 0 14px; color: #93a1a8; background: #f8fafb; text-align: left; font-size: 8px; font-weight: 700; letter-spacing: .45px; }
+    td { height: 58px; padding: 0 14px; border-top: 1px solid #f0f3f5; color: #536a78; font-size: 9px; }
+    tbody tr:hover { background: #fbfdfd; }
+    .user-cell { display: flex; min-width: 185px; align-items: center; gap: 9px; }
+    .user-cell .avatar { width: 29px; height: 29px; font-size: 9px; }
+    .user-info strong, .user-info small { display: block; }
+    .user-info strong { color: #294453; font-size: 10px; font-weight: 650; }
+    .user-info small { margin-top: 3px; color: #96a4ac; font-size: 8px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 20px; color: #31846d; background: #e9f6f0; font-size: 8px; font-weight: 650; }
+    .status:before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ""; }
+    .status.pending { color: #b37a32; background: #fbf3e6; }
+    .status.disabled { color: #81909a; background: #f0f3f5; }
+    .source { color: #748996; }
+    .role-tag { display: inline-block; padding: 4px 7px; border: 1px solid #e4eaee; border-radius: 4px; color: #526a78; background: #fff; font-size: 8px; }
+    .row-action { border: 0; color: #58727f; background: transparent; font-size: 9px; }
+    .row-action:hover { color: var(--teal); }
+    .table-foot { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-top: 1px solid #f0f3f5; color: #91a0a8; font-size: 8px; }
+    .pagination { display: flex; align-items: center; gap: 5px; }
+    .page-no { display: grid; width: 22px; height: 22px; place-items: center; border: 1px solid #e5ebee; border-radius: 5px; color: #667c88; background: #fff; }
+    .page-no.active { border-color: #178c80; color: #fff; background: #178c80; }
+    .notice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 15px; border: 1px solid #d9eee7; border-radius: 7px; color: #4b7268; background: #f3faf7; font-size: 9px; line-height: 1.55; }
+    .notice b { color: #347d6d; }
+    .role-layout { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 2fr); gap: 14px; }
+    .role-list { display: grid; gap: 5px; padding: 0 12px 14px; }
+    .role-option { width: 100%; padding: 11px; border: 1px solid transparent; border-radius: 6px; color: #647a86; background: transparent; text-align: left; }
+    .role-option.active { border-color: #cde7e0; color: #267c70; background: #f1faf7; }
+    .role-option strong, .role-option small { display: block; }
+    .role-option strong { font-size: 10px; }
+    .role-option small { margin-top: 4px; color: #94a2a9; font-size: 8px; }
+    .permission-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 18px 16px; }
+    .permission-group { padding: 12px; border: 1px solid #edf1f3; border-radius: 7px; }
+    .permission-group h3 { margin: 0 0 10px; color: #49616e; font-size: 9px; }
+    .check-row { display: flex; align-items: flex-start; gap: 7px; padding: 7px 0; color: #536a78; font-size: 9px; }
+    .check-row + .check-row { border-top: 1px solid #f3f5f6; }
+    .check-row input { margin: 1px 0 0; accent-color: var(--teal); }
+    .check-copy strong, .check-copy small { display: block; }
+    .check-copy strong { font-weight: 600; }
+    .check-copy small { margin-top: 3px; color: #95a2a9; font-size: 8px; }
+    .panel-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; border-top: 1px solid #edf1f3; }
+    .panel-foot small { color: #8a9ba3; font-size: 8px; }
+    .grant-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 8px; padding: 0 18px 16px; }
+    .field { display: grid; gap: 5px; color: #71848e; font-size: 8px; }
+    .field .control { min-width: 0; }
+    .provider-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 18px 18px; }
+    .provider-card { padding: 15px; border: 1px solid #e8eef0; border-radius: 8px; }
+    .provider-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .provider-name { display: flex; align-items: center; gap: 9px; }
+    .provider-logo { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; color: #4775a9; background: #eef4fc; font-size: 10px; font-weight: 800; }
+    .provider-logo.green { color: #2d8a68; background: #eaf6f0; }
+    .provider-name strong, .provider-name small { display: block; }
+    .provider-name strong { color: #2b4654; font-size: 10px; }
+    .provider-name small { margin-top: 4px; color: #93a1a8; font-size: 8px; }
+    .provider-details { display: grid; gap: 7px; padding-top: 13px; margin-top: 13px; border-top: 1px solid #eef2f4; }
+    .provider-detail { display: flex; justify-content: space-between; gap: 10px; color: #82939b; font-size: 8px; }
+    .provider-detail strong { overflow: hidden; color: #536b78; font-weight: 550; text-overflow: ellipsis; }
+    .provider-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 13px; }
+    .prototype-label { position: fixed; right: 16px; bottom: 14px; z-index: 3; padding: 7px 10px; border: 1px solid #f0dfc5; border-radius: 20px; color: #956c35; background: #fff9ef; box-shadow: 0 4px 14px #182f3a12; font-size: 8px; }
+    .toast { position: fixed; right: 20px; bottom: 52px; z-index: 5; padding: 11px 15px; border-radius: 7px; color: #fff; background: #223b3a; box-shadow: var(--shadow); font-size: 10px; opacity: 0; pointer-events: none; transform: translateY(6px); transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .mobile-menu { display: none; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 1050px) {
+      .sidebar { flex-basis: 210px; }
+      .content { padding-right: 22px; padding-left: 22px; }
+      .grant-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grant-form .button { align-self: end; }
+    }
+    @media (max-width: 760px) {
+      .sidebar { position: fixed; z-index: 4; width: 248px; transform: translateX(-100%); transition: transform .2s; }
+      .shell.menu-open .sidebar { transform: translateX(0); box-shadow: 20px 0 45px #10232050; }
+      .topbar { height: 54px; padding: 0 15px; }
+      .mobile-menu { display: inline-grid; width: 28px; height: 28px; place-items: center; border: 0; color: #617681; background: transparent; }
+      .crumb { margin-right: auto; margin-left: 8px; }
+      .env-pill { display: none; }
+      .content { padding: 20px 14px 36px; }
+      .page-heading { align-items: center; }
+      h1 { font-size: 20px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .stat { min-height: 72px; padding: 10px; }
+      .stat-icon { width: 29px; height: 29px; }
+      .stat-copy strong { font-size: 17px; }
+      .filters { flex-wrap: wrap; padding-right: 12px; padding-left: 12px; }
+      .search { flex-basis: 100%; max-width: none; }
+      select.control { flex: 1; min-width: 0; }
+      .panel-head { padding-right: 12px; padding-left: 12px; }
+      .role-layout { grid-template-columns: 1fr; }
+      .permission-groups { grid-template-columns: 1fr; padding-right: 12px; padding-left: 12px; }
+      .provider-grid { grid-template-columns: 1fr; padding-right: 12px; padding-left: 12px; }
+      .grant-form { grid-template-columns: 1fr 1fr; padding-right: 12px; padding-left: 12px; }
+      .panel-foot { align-items: flex-end; padding-right: 12px; padding-left: 12px; }
+      .actions .button.secondary { display: none; }
+    }
+    @media (max-width: 430px) {
+      .page-heading { align-items: flex-start; }
+      .page-heading .actions { flex-direction: column-reverse; align-items: flex-end; }
+      .grant-form { grid-template-columns: 1fr; }
+      .stat { gap: 8px; }
+      .top-actions { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <span class="brand-name">smartagent</span>
+        <span class="brand-tag">IDENTITY</span>
+      </div>
+      <button class="tenant" type="button" data-toast="租户切换器原型">
+        <span class="tenant-mark">A</span>
+        <span class="tenant-copy"><strong>Acme 智能科技</strong><small>Tenant · acme-prod</small></span>
+        <span class="chevron">⌄</span>
+      </button>
+      <p class="nav-label">身份与权限</p>
+      <nav class="nav-list" aria-label="身份管理导航">
+        <button class="nav-item active" data-page="users"><span class="nav-icon">▦</span>用户与成员<span class="nav-count">128</span></button>
+        <button class="nav-item" data-page="roles"><span class="nav-icon">◇</span>角色与权限<span class="nav-count">8</span></button>
+        <button class="nav-item" data-page="grants"><span class="nav-icon">⌘</span>资源授权<span class="nav-count">24</span></button>
+        <button class="nav-item" data-page="providers"><span class="nav-icon">◎</span>身份提供商<span class="nav-count">3</span></button>
+        <button class="nav-item" data-page="audit"><span class="nav-icon">◷</span>访问审计</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="security-note">
+          <strong><span>◈</span>身份安全状态</strong>
+          <p>OIDC 已启用 · 最近一次安全检查于 09:42 完成</p>
+        </div>
+        <div class="profile">
+          <span class="avatar">林</span>
+          <span class="profile-copy"><strong>林晓 · 管理员</strong><small>lin.xiao@acme.cn</small></span>
+          <span class="profile-menu">•••</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="打开菜单">☰</button>
+        <div class="crumb"><span>IAM 控制台</span><span>/</span><strong id="crumbTitle">用户与成员</strong></div>
+        <div class="top-actions">
+          <span class="env-pill"><i class="dot"></i>生产租户</span>
+          <span class="top-icon" aria-label="帮助">ⓘ</span>
+          <span class="avatar">林</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page" id="page-users">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">IDENTITY DIRECTORY</div>
+              <h1>用户与成员</h1>
+              <p>集中管理租户成员、登录方式和角色分配。</p>
+            </div>
+            <div class="actions">
+              <button class="button secondary" data-toast="导入成员流程原型">↥ <span>导入成员</span></button>
+              <button class="button primary" data-toast="创建用户对话框原型">＋ 添加用户</button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <article class="stat"><span class="stat-icon">♙</span><span class="stat-copy"><small>租户成员</small><strong>128 <em>+12 本月</em></strong></span></article>
+            <article class="stat"><span class="stat-icon purple">◉</span><span class="stat-copy"><small>活跃用户</small><strong>116 <em>90.6%</em></strong></span></article>
+            <article class="stat"><span class="stat-icon amber">▤</span><span class="stat-copy"><small>已分配角色</small><strong>8 <em>含 2 个内置</em></strong></span></article>
+            <article class="stat"><span class="stat-icon red">◎</span><span class="stat-copy"><small>外部身份绑定</small><strong>74 <em>3 个身份源</em></strong></span></article>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><div class="panel-title">成员目录</div><div class="panel-subtitle">查看成员状态、登录来源与角色</div></div>
+              <button class="button ghost" data-toast="列表已刷新">↻ 刷新</button>
+            </div>
+            <div class="filters">
+              <label class="search"><span>⌕</span><input id="userSearch" class="control" placeholder="搜索姓名、用户名或邮箱"></label>
+              <select id="statusFilter" class="control" aria-label="筛选状态"><option value="">全部状态</option><option>活跃</option><option>待激活</option><option>已停用</option></select>
+              <select id="sourceFilter" class="control" aria-label="筛选来源"><option value="">全部来源</option><option>本地账号</option><option>Google Workspace</option><option>钉钉</option><option>企业微信</option></select>
+              <button class="button" data-toast="更多筛选条件原型">筛选 <span>⌄</span></button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>成员</th><th>状态</th><th>登录来源</th><th>角色</th><th>最近登录</th><th></th></tr></thead>
+                <tbody id="userRows">
+                  <tr data-status="活跃" data-source="本地账号" data-search="林晓 lin.xiao lin.xiao@acme.cn">
+                    <td><div class="user-cell"><span class="avatar">林</span><span class="user-info"><strong>林晓</strong><small>lin.xiao@acme.cn</small></span></div></td><td><span class="status">活跃</span></td><td class="source">本地账号</td><td><span class="role-tag">租户管理员</span></td><td>今天 09:42</td><td><button class="row-action" data-toast="用户详情抽屉原型">查看详情 →</button></td>
+                  </tr>
+                  <tr data-status="活跃" data-source="Google Workspace" data-search="周宁 zhou.ning zhou.ning@acme.cn">
+                    <td><div class="user-cell"><span class="avatar" style="color:#6e62a1;background:#f0edf8">周</span><span class="user-info"><strong>周宁</strong><small>zhou.ning@acme.cn</small></span></div></td><td><span class="status">活跃</span></td><td class="source">Google Workspace</td><td><span class="role-tag">Agent 使用者</span></td><td>今天 09:18</td><td><button class="row-action" data-toast="用户详情抽屉原型">查看详情 →</button></td>
+                  </tr>
+                  <tr data-status="待激活" data-source="钉钉" data-search="陈宇 chen.yu chen.yu@acme.cn">
+                    <td><div class="user-cell"><span class="avatar" style="color:#b16b3e;background:#fbefe6">陈</span><span class="user-info"><strong>陈宇</strong><small>chen.yu@acme.cn</small></span></div></td><td><span class="status pending">待激活</span></td><td class="source">钉钉</td><td><span class="role-tag">知识库编辑者</span></td><td>尚未登录</td><td><button class="row-action" data-toast="用户详情抽屉原型">查看详情 →</button></td>
+                  </tr>
+                  <tr data-status="活跃" data-source="企业微信" data-search="王敏 wang.min wang.min@acme.cn">
+                    <td><div class="user-cell"><span class="avatar" style="color:#32815d;background:#e8f5ec">王</span><span class="user-info"><strong>王敏</strong><small>wang.min@acme.cn</small></span></div></td><td><span class="status">活跃</span></td><td class="source">企业微信</td><td><span class="role-tag">Tool 审批人</span></td><td>昨天 18:36</td><td><button class="row-action" data-toast="用户详情抽屉原型">查看详情 →</button></td>
+                  </tr>
+                  <tr data-status="已停用" data-source="本地账号" data-search="赵琪 zhao.qi zhao.qi@acme.cn">
+                    <td><div class="user-cell"><span class="avatar" style="color:#75838a;background:#edf1f3">赵</span><span class="user-info"><strong>赵琪</strong><small>zhao.qi@acme.cn</small></span></div></td><td><span class="status disabled">已停用</span></td><td class="source">本地账号</td><td><span class="role-tag">Agent 使用者</span></td><td>11 月 16 日</td><td><button class="row-action" data-toast="用户详情抽屉原型">查看详情 →</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot"><span id="rowCount">显示 1–5 条，共 128 位成员</span><div class="pagination"><span>上一页</span><button class="page-no active">1</button><button class="page-no" data-toast="第 2 页原型">2</button><button class="page-no" data-toast="第 3 页原型">3</button><span>下一页</span></div></div>
+          </section>
+          <div class="notice" style="margin-top:14px"><span>ⓘ</span><span><b>身份边界：</b>第三方登录来源用于认证；角色和资源授权仍由本租户管理。组织/成员自动同步可作为后续独立集成能力。</span></div>
+        </section>
+
+        <section class="page" id="page-roles" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow">ROLE-BASED ACCESS</div><h1>角色与权限</h1><p>用角色组合平台能力，再将角色分配给租户成员。</p></div>
+            <div class="actions"><button class="button" data-toast="权限模板原型">权限模板</button><button class="button primary" data-toast="新建角色对话框原型">＋ 新建角色</button></div>
+          </div>
+          <div class="role-layout">
+            <section class="panel">
+              <div class="panel-head"><div><div class="panel-title">角色目录</div><div class="panel-subtitle">当前租户 8 个角色</div></div><button class="button ghost" data-toast="角色列表搜索原型">⌕</button></div>
+              <div class="role-list">
+                <button class="role-option active"><strong>租户管理员</strong><small>内置角色 · 8 项权限</small></button>
+                <button class="role-option" data-toast="角色切换原型"><strong>Agent 使用者</strong><small>自定义角色 · 3 项权限</small></button>
+                <button class="role-option" data-toast="角色切换原型"><strong>知识库编辑者</strong><small>自定义角色 · 4 项权限</small></button>
+                <button class="role-option" data-toast="角色切换原型"><strong>Tool 审批人</strong><small>自定义角色 · 2 项权限</small></button>
+                <button class="role-option" data-toast="角色切换原型"><strong>只读审计员</strong><small>自定义角色 · 3 项权限</small></button>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><div><div class="panel-title">租户管理员</div><div class="panel-subtitle">内置角色 · 控制用户可访问的平台功能</div></div><span class="status">系统角色</span></div>
+              <div class="permission-groups">
+                <div class="permission-group"><h3>Agent 管理</h3>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>agent:read</strong><small>查看租户内 Agent</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>agent:manage</strong><small>创建、更新和删除 Agent</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>run:execute</strong><small>发起 Agent 运行</small></span></label>
+                </div>
+                <div class="permission-group"><h3>成员与访问</h3>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>user:manage</strong><small>管理成员和角色分配</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>role:manage</strong><small>管理角色和功能权限</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>grant:manage</strong><small>配置资源级授权规则</small></span></label>
+                </div>
+                <div class="permission-group"><h3>平台资源</h3>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>tool:manage</strong><small>管理 Tool 与 Skill</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>memory:manage</strong><small>管理租户记忆资源</small></span></label>
+                  <label class="check-row"><input type="checkbox" checked disabled><span class="check-copy"><strong>audit:read</strong><small>查看安全审计记录</small></span></label>
+                </div>
+                <div class="permission-group"><h3>授权原则</h3>
+                  <label class="check-row"><span class="check-copy"><strong>功能权限与 Tool 授权分层</strong><small>角色决定 API 能力；单个 Tool 的执行权在资源授权中单独控制。</small></span></label>
+                  <label class="check-row"><span class="check-copy"><strong>拒绝优先</strong><small>同一主体同时命中允许和拒绝规则时，以拒绝为准。</small></span></label>
+                </div>
+              </div>
+              <div class="panel-foot"><small>内置角色权限由系统维护，不可直接修改。</small><button class="button" data-toast="复制角色原型">复制为自定义角色</button></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="page-grants" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow">RESOURCE-LEVEL POLICY</div><h1>资源授权</h1><p>对指定用户或角色授予单个 Tool 的执行权限。</p></div>
+            <button class="button primary" data-toast="新增授权规则对话框原型">＋ 新增授权规则</button>
+          </div>
+          <div class="notice"><span>ⓘ</span><span><b>授权逻辑：</b>先满足运行功能权限，再检查资源授权；DENY 始终优先。以下为 execute 动作规则示例。</span></div>
+          <section class="panel">
+            <div class="panel-head"><div><div class="panel-title">授权规则</div><div class="panel-subtitle">按角色/用户与资源 ID 精确匹配</div></div><button class="button" data-toast="授权列表筛选原型">筛选 ⌄</button></div>
+            <div class="grant-form">
+              <label class="field">主体类型<select class="control"><option>角色</option><option>用户</option></select></label>
+              <label class="field">选择主体<select class="control"><option>Agent 使用者</option><option>知识库编辑者</option></select></label>
+              <label class="field">Tool<select class="control"><option>客户资料查询</option><option>工单创建</option></select></label>
+              <label class="field">授权效果<select class="control"><option>允许执行</option><option>拒绝执行</option></select></label>
+              <button class="button primary" data-toast="授权规则已添加（原型）">添加规则</button>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>效果</th><th>授权主体</th><th>资源</th><th>动作</th><th>创建者</th><th>更新时间</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><span class="status">允許</span></td><td>Agent 使用者 · 角色</td><td><strong>客户资料查询</strong><small style="display:block;margin-top:3px;color:#93a1a8">tool_8f30…c1</small></td><td>execute</td><td>林晓</td><td>今天 09:12</td><td><button class="row-action" data-toast="编辑授权规则原型">编辑</button></td></tr>
+                <tr><td><span class="status disabled">拒绝</span></td><td>外包协作者 · 角色</td><td><strong>客户资料查询</strong><small style="display:block;margin-top:3px;color:#93a1a8">tool_8f30…c1</small></td><td>execute</td><td>林晓</td><td>11 月 18 日</td><td><button class="row-action" data-toast="编辑授权规则原型">编辑</button></td></tr>
+                <tr><td><span class="status">允許</span></td><td>周宁 · 用户</td><td><strong>工单创建</strong><small style="display:block;margin-top:3px;color:#93a1a8">tool_11bd…7e</small></td><td>execute</td><td>林晓</td><td>11 月 17 日</td><td><button class="row-action" data-toast="编辑授权规则原型">编辑</button></td></tr>
+              </tbody>
+            </table></div>
+            <div class="table-foot"><span>显示 1–3 条，共 24 条规则</span><div class="pagination"><span>上一页</span><button class="page-no active">1</button><button class="page-no" data-toast="第 2 页原型">2</button><span>下一页</span></div></div>
+          </section>
+        </section>
+
+        <section class="page" id="page-providers" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow">FEDERATED IDENTITY</div><h1>身份提供商</h1><p>配置第三方登录，并将外部身份安全绑定到已有租户成员。</p></div>
+            <button class="button primary" data-toast="添加身份提供商流程原型">＋ 添加身份提供商</button>
+          </div>
+          <div class="notice"><span>◈</span><span><b>安全默认值：</b>不按邮箱自动合并或创建账号。用户需先有本地成员账号，再主动绑定外部身份。</span></div>
+          <section class="panel">
+            <div class="panel-head"><div><div class="panel-title">已配置的身份源</div><div class="panel-subtitle">登录和身份绑定按租户隔离</div></div><button class="button ghost" data-toast="身份源列表已刷新">↻ 刷新</button></div>
+            <div class="provider-grid">
+              <article class="provider-card">
+                <div class="provider-head"><div class="provider-name"><span class="provider-logo">G</span><span><strong>Google Workspace</strong><small>OIDC · google-workspace</small></span></div><span class="status">运行中</span></div>
+                <div class="provider-details"><div class="provider-detail"><span>Issuer</span><strong>https://accounts.google.com</strong></div><div class="provider-detail"><span>Client ID</span><strong>••••••••••••apps.googleusercontent.com</strong></div><div class="provider-detail"><span>绑定成员</span><strong>42 人</strong></div><div class="provider-detail"><span>Scopes</span><strong>openid · email · profile</strong></div></div>
+                <div class="provider-actions"><button class="row-action" data-toast="编辑 Google OIDC 配置原型">配置</button><button class="row-action" data-toast="绑定测试流程原型">测试登录</button><button class="row-action" data-toast="停用身份源确认原型">停用</button></div>
+              </article>
+              <article class="provider-card">
+                <div class="provider-head"><div class="provider-name"><span class="provider-logo green">D</span><span><strong>钉钉工作台</strong><small>OIDC · dingtalk-sso</small></span></div><span class="status">运行中</span></div>
+                <div class="provider-details"><div class="provider-detail"><span>Issuer</span><strong>https://login.dingtalk.com</strong></div><div class="provider-detail"><span>Client ID</span><strong>••••••••••••••••••</strong></div><div class="provider-detail"><span>绑定成员</span><strong>32 人</strong></div><div class="provider-detail"><span>Scopes</span><strong>openid · profile</strong></div></div>
+                <div class="provider-actions"><button class="row-action" data-toast="编辑钉钉 OIDC 配置原型">配置</button><button class="row-action" data-toast="绑定测试流程原型">测试登录</button><button class="row-action" data-toast="停用身份源确认原型">停用</button></div>
+              </article>
+              <article class="provider-card">
+                <div class="provider-head"><div class="provider-name"><span class="provider-logo green">W</span><span><strong>企业微信</strong><small>OIDC · wecom-company</small></span></div><span class="status pending">待验证</span></div>
+                <div class="provider-details"><div class="provider-detail"><span>Issuer</span><strong>https://sso.example.cn</strong></div><div class="provider-detail"><span>Client ID</span><strong>尚未配置</strong></div><div class="provider-detail"><span>绑定成员</span><strong>0 人</strong></div><div class="provider-detail"><span>Scopes</span><strong>openid · profile</strong></div></div>
+                <div class="provider-actions"><button class="row-action" data-toast="继续配置企业微信原型">继续配置</button><button class="row-action" data-toast="验证身份源连通性原型">验证连接</button><button class="row-action" data-toast="删除身份源确认原型">删除</button></div>
+              </article>
+              <button class="provider-card" style="border-style:dashed;color:#71858f;background:#fbfdfd" data-toast="选择标准 OIDC 提供商原型">
+                <span style="font-size:20px;color:#4b9b8e">＋</span><strong style="display:block;margin-top:8px;font-size:10px">接入标准 OIDC 身份源</strong><small style="display:block;margin-top:5px;font-size:8px">兼容自建 IdP 与其他标准 OIDC 服务</small>
+              </button>
+            </div>
+          </section>
+          <div class="notice" style="margin-top:14px"><span>ⓘ</span><span>不同平台若不支持标准 OIDC，需由后续适配器实现对应 OAuth/登录协议；通讯录同步与角色映射属于独立的后续能力。</span></div>
+        </section>
+
+        <section class="page" id="page-audit" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow">SECURITY TRAIL</div><h1>访问审计</h1><p>按操作者、动作和结果追踪身份及授权变更。</p></div>
+            <div class="actions"><button class="button" data-toast="导出审计记录原型">↧ 导出</button><button class="button" data-toast="审计筛选原型">筛选 ⌄</button></div>
+          </div>
+          <div class="stats">
+            <article class="stat"><span class="stat-icon">◷</span><span class="stat-copy"><small>今日事件</small><strong>246</strong></span></article>
+            <article class="stat"><span class="stat-icon">✓</span><span class="stat-copy"><small>授权成功</small><strong>231</strong></span></article>
+            <article class="stat"><span class="stat-icon red">⊘</span><span class="stat-copy"><small>拒绝访问</small><strong>15</strong></span></article>
+            <article class="stat"><span class="stat-icon purple">♙</span><span class="stat-copy"><small>操作者</small><strong>18</strong></span></article>
+          </div>
+          <section class="panel">
+            <div class="panel-head"><div><div class="panel-title">最近事件</div><div class="panel-subtitle">示例数据 · 以服务端审计记录为准</div></div><button class="button ghost" data-toast="审计列表已刷新">↻ 刷新</button></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>时间</th><th>操作者</th><th>事件</th><th>资源</th><th>结果</th><th>来源</th></tr></thead>
+              <tbody>
+                <tr><td>今天 09:42:18</td><td>林晓</td><td>身份提供商配置更新</td><td>Google Workspace</td><td><span class="status">允许</span></td><td>192.168.10.24</td></tr>
+                <tr><td>今天 09:39:05</td><td>周宁</td><td>Tool 执行授权检查</td><td>客户资料查询</td><td><span class="status disabled">拒绝</span></td><td>Agent Run</td></tr>
+                <tr><td>今天 09:14:51</td><td>林晓</td><td>用户角色变更</td><td>陈宇 · 知识库编辑者</td><td><span class="status">允许</span></td><td>192.168.10.24</td></tr>
+              </tbody>
+            </table></div>
+            <div class="table-foot"><span>原型展示字段；审计查询和导出接口需单独确认。</span><div class="pagination"><button class="page-no active">1</button><button class="page-no" data-toast="第 2 页原型">2</button></div></div>
+          </section>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="prototype-label">交互原型 · 示例数据</div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const titles = {
+      users: '用户与成员',
+      roles: '角色与权限',
+      grants: '资源授权',
+      providers: '身份提供商',
+      audit: '访问审计',
+    };
+    const shell = document.getElementById('shell');
+    let toastTimer;
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    document.querySelectorAll('.nav-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        document.querySelectorAll('.nav-item').forEach((nav) => nav.classList.toggle('active', nav === item));
+        document.querySelectorAll('.page').forEach((section) => { section.hidden = section.id !== `page-${page}`; });
+        document.getElementById('crumbTitle').textContent = titles[page];
+        shell.classList.remove('menu-open');
+      });
+    });
+
+    document.querySelectorAll('[data-toast]').forEach((button) => {
+      button.addEventListener('click', () => showToast(button.dataset.toast));
+    });
+
+    document.getElementById('mobileMenu').addEventListener('click', () => shell.classList.toggle('menu-open'));
+
+    function filterUsers() {
+      const query = document.getElementById('userSearch').value.trim().toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      const source = document.getElementById('sourceFilter').value;
+      let visible = 0;
+      document.querySelectorAll('#userRows tr').forEach((row) => {
+        const matches = row.dataset.search.includes(query)
+          && (!status || row.dataset.status === status)
+          && (!source || row.dataset.source === source);
+        row.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      document.getElementById('rowCount').textContent = `当前显示 ${visible} 位成员 · 原型共 5 条示例`;
+    }
+
+    document.getElementById('userSearch').addEventListener('input', filterUsers);
+    document.getElementById('statusFilter').addEventListener('change', filterUsers);
+    document.getElementById('sourceFilter').addEventListener('change', filterUsers);
+  </script>
+</body>
+</html>

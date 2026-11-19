@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from smartagent.api.schemas import GrantCreateRequest, GrantOut
 from smartagent.api.security import get_current_user, require_admin
-from smartagent.db.models import Grant
+from smartagent.db.models import Grant, Role, User
 from smartagent.db.session import get_db
 from smartagent.iam.permission_manager import Principal
 
@@ -33,6 +33,19 @@ async def create_grant(
     principal: Principal = Depends(get_current_user),
     _: None = Depends(require_admin),
 ):
+    if body.principal_type == "user":
+        assignee = await db.get(User, body.principal_id)
+    else:
+        assignee = await db.get(Role, body.principal_id)
+    if assignee is None or assignee.tenant_id != principal.tenant_id:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "RESOURCE_NOT_FOUND",
+                "message": f"{body.principal_type} {body.principal_id} not found",
+            },
+        )
+
     grant = Grant(
         id=f"grant_{uuid.uuid4().hex}",
         tenant_id=principal.tenant_id,
