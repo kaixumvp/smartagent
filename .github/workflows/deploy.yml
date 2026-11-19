@@ -96,9 +96,17 @@ jobs:
           echo "platform=$platform" >> "$GITHUB_OUTPUT"
           echo "capability=$capability" >> "$GITHUB_OUTPUT"
           echo "knowledge=$knowledge" >> "$GITHUB_OUTPUT"
+          knowledge_version="$(sed -n '/| `knowledge` (Knowledge Hub) |/s/.*\*\*\([0-9][0-9.]*\)\*\*.*/\1/p' VERSIONS.md)"
+          if [[ -z "$knowledge_version" ]]; then
+            echo "Could not read the Knowledge version from VERSIONS.md" >&2
+            exit 1
+          fi
+          knowledge_image_tag="v${knowledge_version}-build.${GITHUB_RUN_NUMBER}"
+          echo "knowledge_image_tag=$knowledge_image_tag" >> "$GITHUB_OUTPUT"
           echo "PlatformAgent deployment: $platform"
           echo "Capability deployment: $capability"
           echo "Knowledge deployment: $knowledge"
+          echo "Knowledge image tag: $knowledge_image_tag"
 
       - name: Log in to Aliyun Container Registry
         if: steps.targets.outputs.platform == 'true' || steps.targets.outputs.capability == 'true' || steps.targets.outputs.knowledge == 'true'
@@ -129,6 +137,7 @@ jobs:
           PLATFORM_CHANGED: ${{ steps.targets.outputs.platform }}
           CAPABILITY_CHANGED: ${{ steps.targets.outputs.capability }}
           KNOWLEDGE_CHANGED: ${{ steps.targets.outputs.knowledge }}
+          KNOWLEDGE_IMAGE_TAG: ${{ steps.targets.outputs.knowledge_image_tag }}
         run: |
           set -euo pipefail
           platform_env_file="application/platformagent/backend/.env"
@@ -163,10 +172,10 @@ jobs:
           fi
 
           if [[ "$KNOWLEDGE_CHANGED" == "true" ]]; then
-            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$GITHUB_SHA" docker compose \
+            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$KNOWLEDGE_IMAGE_TAG" docker compose \
               --file application/knowledge/docker-compose.yml \
               build backend frontend
-            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$GITHUB_SHA" docker compose \
+            ACR_REGISTRY="$ACR_REGISTRY" KNOWLEDGE_IMAGE_TAG="$KNOWLEDGE_IMAGE_TAG" docker compose \
               --file application/knowledge/docker-compose.yml \
               push backend frontend
           fi
@@ -201,6 +210,7 @@ jobs:
           DEPLOY_PLATFORM: ${{ steps.targets.outputs.platform }}
           DEPLOY_CAPABILITY: ${{ steps.targets.outputs.capability }}
           DEPLOY_KNOWLEDGE: ${{ steps.targets.outputs.knowledge }}
+          KNOWLEDGE_IMAGE_TAG: ${{ steps.targets.outputs.knowledge_image_tag }}
         run: |
           set -euo pipefail
           test -n "$ALIYUN_HOST"
@@ -239,14 +249,15 @@ jobs:
               "$TARGET:/opt/knowledge/docker-compose.yml"
           fi
 
-          printf -v REMOTE_ARGS '%q ' "$GITHUB_SHA" "$DEPLOY_PLATFORM" "$DEPLOY_CAPABILITY" "$DEPLOY_KNOWLEDGE" "$ACR_REGISTRY"
+          printf -v REMOTE_ARGS '%q ' "$GITHUB_SHA" "$DEPLOY_PLATFORM" "$DEPLOY_CAPABILITY" "$DEPLOY_KNOWLEDGE" "$KNOWLEDGE_IMAGE_TAG" "$ACR_REGISTRY"
           "${SSH[@]}" "$TARGET" "bash -s -- $REMOTE_ARGS" <<'REMOTE'
           set -euo pipefail
           image_tag="$1"
           deploy_platform="$2"
           deploy_capability="$3"
           deploy_knowledge="$4"
-          acr_registry="$5"
+          knowledge_image_tag="$5"
+          acr_registry="$6"
           platform_dir="/opt/platformagent"
           capability_dir="/opt/capability"
           knowledge_dir="/opt/knowledge"
@@ -335,11 +346,11 @@ jobs:
           fi
 
           if [[ "$deploy_knowledge" == "true" ]]; then
-            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$image_tag" docker compose \
+            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$knowledge_image_tag" docker compose \
               --project-directory "$knowledge_dir" \
               --file "$knowledge_compose" \
               pull backend frontend
-            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$image_tag" docker compose \
+            ACR_REGISTRY="$acr_registry" KNOWLEDGE_IMAGE_TAG="$knowledge_image_tag" docker compose \
               --project-directory "$knowledge_dir" \
               --file "$knowledge_compose" \
               up -d --no-build --remove-orphans

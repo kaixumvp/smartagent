@@ -73,6 +73,10 @@ backend/frontend 镜像，随后上传 Compose 配置并更新远程服务。也
 Compose volumes 中。PlatformAgent 与 Knowledge 共用 `public-gateway` Docker 网络时，可通过
 `http://<ECS公网IP>/knowledge/` 从平台控制台进入知识库。
 
+Knowledge 镜像标签使用 `v<版本>-build.<工作流运行号>`，例如 `v0.2.0-build.42`；backend/frontend
+分别追加 `-knowledge-backend` 和 `-knowledge-frontend`。版本来自仓库根目录的 `VERSIONS.md`，
+运行号可在对应的 GitHub Actions 执行记录中查看。
+
 ## 本地开发
 
 ```bash
