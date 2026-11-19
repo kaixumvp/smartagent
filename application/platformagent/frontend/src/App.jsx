@@ -9,7 +9,7 @@ import AgentDetailDialog from './features/agents/AgentDetailDialog.jsx';
 import useAgentWorkspace from './features/agents/useAgentWorkspace.js';
 import OverviewPage from './features/dashboard/OverviewPage.jsx';
 import EvaluationLab from './features/evaluation/EvaluationLab.jsx';
-import IamPage from './features/iam/IamPage.jsx';
+import IamConsoleRoute from './features/iam/IamConsoleRoute.jsx';
 import RunHistoryPage from './features/runs/RunHistoryPage.jsx';
 import ToolsPage from './features/tools/ToolsPage.jsx';
 import Login from './components/Login.jsx';
@@ -19,15 +19,6 @@ const API_BASE = import.meta.env.VITE_API_BASE || '/v1';
 const MD_VIEW_KEY = 'smartagent_md_view';
 // 原文模式即改造前的表现（CSS white-space: pre-wrap 原样回显），格式化模式交给 react-markdown。
 
-function tokenClaims(token) {
-  try {
-    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(payload));
-  } catch {
-    return {};
-  }
-}
-
 const demoAgents = [
   { id: 'agent_support', name: '客服协作员', version: 'v1.4', status: 'active', model: 'deepseek-chat', runs: 1284, success: 96, accent: 'coral' },
   { id: 'agent_ops', name: '运营分析师', version: 'v2.1', status: 'active', model: 'gpt-4o-mini', runs: 876, success: 92, accent: 'teal' },
@@ -35,6 +26,11 @@ const demoAgents = [
 ];
 
 export default function App() {
+  const isIamRoute = window.location.pathname.replace(/\/+$/, '') === '/iam';
+  return isIamRoute ? <IamConsoleRoute /> : <PlatformConsole />;
+}
+
+function PlatformConsole() {
   const [token, setToken] = useState(localStorage.getItem('smartagent_token') || '');
   const [active, setActive] = useState('overview');
   const [agents, setAgents] = useState(demoAgents);
@@ -224,7 +220,6 @@ export default function App() {
   }
 
   if (!token) return <Login onLogin={login} />;
-  const principal = tokenClaims(token);
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -239,12 +234,12 @@ export default function App() {
         <p className="nav-label">资源</p>
         <NavItem icon={<Terminal />} label="工具与技能" active={active === 'tools'} onClick={() => setActive('tools')} />
         <NavItem icon={<Database />} label="记忆库" active={active === 'memory'} onClick={() => setActive('memory')} />
-        <NavItem icon={<ShieldCheck />} label="权限管理" active={active === 'iam'} onClick={() => setActive('iam')} />
+        <NavItem icon={<ShieldCheck />} label="权限管理" active={false} onClick={() => { window.location.href = '/iam'; }} />
       </nav>
       <div className="sidebar-bottom"><div className="status-line"><span className="status-dot" />API 在线 <span className="latency">42ms</span></div><button className="user-menu" onClick={() => { localStorage.removeItem('smartagent_token'); setToken(''); }}><div className="user-avatar">AD</div><span><strong>Admin</strong><small>管理员</small></span><LogOut size={15} /></button></div>
     </aside>
     <main className="main-content">
-      <header className="topbar"><div className="crumb"><span>工作台</span><span>/</span><strong>{{ overview: '总览', agents: 'Agents', runs: '运行记录', evals: '评测与实验', tools: '工具与技能', memory: '记忆库', iam: '权限管理' }[active] || '总览'}</strong></div><div className="top-actions"><button className="icon-btn" title="搜索"><Search size={18} /></button><button className="icon-btn" title="快捷键"><Command size={17} /></button><div className="notification"><span /></div><div className="top-avatar">AD</div></div></header>
+      <header className="topbar"><div className="crumb"><span>工作台</span><span>/</span><strong>{{ overview: '总览', agents: 'Agents', runs: '运行记录', evals: '评测与实验', tools: '工具与技能', memory: '记忆库' }[active] || '总览'}</strong></div><div className="top-actions"><button className="icon-btn" title="搜索"><Search size={18} /></button><button className="icon-btn" title="快捷键"><Command size={17} /></button><div className="notification"><span /></div><div className="top-avatar">AD</div></div></header>
       {notice && <div className="notice"><Check size={15} />{notice}<button onClick={() => setNotice('')}><X size={15} /></button></div>}
       <div className="content-wrap">
         <section className="page-heading"><div><div className="eyebrow">THURSDAY, AUGUST 27, 2026</div><h1>早上好，Admin <span>。</span></h1><p>这里是你的 Agent 运行控制中心。</p></div><button className="secondary-btn" onClick={() => setNotice('数据已刷新')}><RefreshCw size={16} />刷新数据</button></section>
@@ -346,10 +341,6 @@ export default function App() {
         )}
         {active === 'evals' && <EvaluationLab api={api} agents={agents} onNotice={setNotice} />}
         {active === 'memory' && <EmptyState active={active} />}
-        {active === 'iam' && (
-          <IamPage api={api} token={token} tenantId={principal.tenant_id || ''} onNotice={setNotice} />
-        )}
-
       </div>
     </main>
   </div>;

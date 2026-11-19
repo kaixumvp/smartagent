@@ -92,6 +92,7 @@ class UserOut(BaseModel):
     name: str
     status: str
     roles: list[str] = Field(default_factory=list)
+    identity_providers: list[str] = Field(default_factory=list)
     created_at: datetime | None = None
 
 

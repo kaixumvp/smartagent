@@ -20,6 +20,13 @@ For the containerized full stack, run `docker compose up --build -d` from
 `application/platformagent/backend`. The production console is served at
 `http://localhost:3000` and proxies API/SSE requests to the backend container.
 
+## IAM console path
+
+The IAM console is available at `/iam` on the same frontend origin, for example
+`http://localhost:3000/iam`. The main console's “权限管理” entry opens this path, and the IAM
+header links back to `/`. It is a separate frontend route and shell, but still shares the frontend
+deployment, backend API, and browser-stored login token; it is not a separate domain or service.
+
 The login screen posts username and password to `POST /v1/auth/login` and stores the returned
 bearer token in local browser storage. Bootstrap account is `admin` / `admin123` unless
 `BOOTSTRAP_ADMIN_PASSWORD` was set. Tenant is optional and only needed when the same username
