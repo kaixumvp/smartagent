@@ -66,7 +66,7 @@
     .eyebrow { margin-bottom: 8px; color: #85949c; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
     h1 { margin: 0; color: #172d3d; font-size: 23px; letter-spacing: -.035em; }
     .subheading { margin-top: 7px; color: #80909b; font-size: 11px; }
-    .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 1px solid #dfe7eb; border-radius: 7px; color: #3b5261; background: white; font-size: 10px; font-weight: 600; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 1px solid #dfe7eb; border-radius: 7px; color: #3b5261; background: white; font-size: 10px; font-weight: 600; white-space: nowrap; }
     .button.primary { border-color: var(--accent); color: white; background: var(--accent); box-shadow: 0 3px 8px #158b8325; }
     .button.blue { border-color: var(--blue); background: var(--blue); }
     .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 17px; }
@@ -98,7 +98,7 @@
     .run-copy { min-width: 0; }
     .run-copy strong { display: block; overflow: hidden; color: #415765; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
     .run-copy small { display: block; margin-top: 5px; color: #96a3aa; font-size: 9px; }
-    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .search { display: flex; width: min(290px, 42vw); align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid #e3eaee; border-radius: 7px; color: #8b9aa3; background: #fff; font-size: 10px; }
     .catalog-stats { display: flex; gap: 16px; margin-bottom: 16px; }
     .stat-chip { padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; color: #7e8d97; background: #fff; font-size: 10px; }
@@ -112,6 +112,32 @@
     .tag.workflow { color: #9a6d32; background: #fbf3e5; }
     .row-actions { color: #6c7f8a; font-size: 10px; }
     .page-switch { display: none; }
+    .status.amber { color: #9a6d32; background: #fbf2df; }
+    .status.red { color: #b0532f; background: #fdeee7; }
+    .result-list { padding: 6px 16px; }
+    .result { padding: 13px 0; border-bottom: 1px solid #eef2f4; }
+    .result:last-child { border-bottom: 0; }
+    .result-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #304957; font-size: 10px; font-weight: 650; }
+    .result-head small { color: #91a0a9; font-size: 9px; font-weight: 400; }
+    .result-text { margin: 7px 0 9px; color: #536775; font-size: 10px; line-height: 1.65; }
+    .scores { display: flex; flex-wrap: wrap; gap: 7px; }
+    .score { padding: 3px 7px; border-radius: 5px; color: #6d8090; background: #f4f7f9; font-size: 9px; font-family: ui-monospace, Consolas, monospace; }
+    .score b { color: #263d4b; font-weight: 600; }
+    .lab-query { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid #edf1f3; }
+    .analyzer { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 9px 16px; border-bottom: 1px solid #edf1f3; background: #fbfcfd; color: #8797a0; font-size: 9px; }
+    .lab-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(240px, .9fr); gap: 14px; padding: 14px 16px; }
+    .mini-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .mini-head { padding: 9px 12px; border-bottom: 1px solid #edf1f3; background: #fbfcfd; color: #29404f; font-size: 10px; font-weight: 650; }
+    .kv { display: flex; justify-content: space-between; padding: 7px 12px; border-top: 1px solid #f0f3f5; color: #6d8090; font-size: 9px; }
+    .mini-head + .kv { border-top: 0; }
+    .kv b { color: #263d4b; font-family: ui-monospace, Consolas, monospace; font-weight: 600; }
+    .rank-badge { display: grid; width: 18px; height: 18px; flex: 0 0 18px; place-items: center; border-radius: 6px; color: #218b7b; background: #e8f5f2; font-size: 9px; font-weight: 700; }
+    .result-top { display: flex; align-items: center; gap: 8px; }
+    .result-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .result-actions { display: flex; gap: 10px; }
+    mark { padding: 0 2px; border-radius: 3px; color: #1c6b52; background: #d9efe7; }
+    .ctx-pre { margin: 0; padding: 11px 16px; background: #fbfcfd; color: #536775; font-size: 9px; font-family: ui-monospace, Consolas, monospace; line-height: 1.7; white-space: pre-wrap; }
+    @media (max-width: 900px) { .lab-grid { grid-template-columns: 1fr; } }
     @media (max-width: 900px) {
       aside { width: 190px; flex-basis: 190px; }
       .page { padding: 24px 20px; }
@@ -149,6 +175,7 @@
     <div class="app-switch" role="tablist" aria-label="切换产品原型">
       <button id="platform-tab" class="active" type="button" onclick="showApp('platform')">PlatformAgent</button>
       <button id="capability-tab" type="button" onclick="showApp('capability')">Capability</button>
+      <button id="knowledge-tab" type="button" onclick="showApp('knowledge')">Knowledge</button>
     </div>
   </div>
   <div id="platform" class="shell">
@@ -239,12 +266,118 @@
       </div>
     </main>
   </div>
+  <div id="knowledge" class="shell" style="display:none">
+    <aside>
+      <div class="workspace"><div class="workspace-avatar" style="background:#8067c7">K</div><div><strong>SmartAgent</strong><small>Knowledge Hub⌄</small></div></div>
+      <div class="nav-label">KNOWLEDGE</div>
+      <div class="nav-item active"><span class="icon">▤</span><span>知识库</span><span class="nav-count">6</span></div>
+      <div class="nav-item" style="cursor:pointer" onclick="location.href='knowledge-lab.html'"><span class="icon">⌕</span><span>检索实验室</span></div>
+      <div class="nav-item"><span class="icon">◷</span><span>作业队列</span><span class="nav-count">2</span></div>
+      <div class="nav-label">SYSTEM</div>
+      <div class="nav-item"><span class="icon">⚙</span><span>设置</span></div>
+      <div class="aside-bottom">WORKSPACE<br><div class="user-row"><div class="user-avatar" style="color:#4a3a84;background:#ddd3f7">A</div><span>管理员<br><small style="color:#91a5af">Knowledge Admin</small></span><span style="margin-left:auto">···</span></div></div>
+    </aside>
+    <main>
+      <div class="topbar"><div class="breadcrumbs">Knowledge　/　<b>知识库</b></div><div class="top-actions"><span class="top-status"><i class="dot"></i>Qdrant 已连接</span><span>⌕</span><span>◷</span><span>帮助</span></div></div>
+      <div class="page">
+        <div class="page-heading"><div><div class="eyebrow">KNOWLEDGE HUB</div><h1>信贷制度库</h1><div class="subheading">上传 → 解析 / OCR → Markdown → 切块 → 索引，每条命中可追溯到原文。</div></div><div class="toolbar"><button class="button">⇧ 上传文档</button><button class="button primary">＋ 新建知识库</button></div></div>
+        <div class="catalog-stats">
+          <div class="stat-chip"><strong>6</strong>知识库</div><div class="stat-chip"><strong>128</strong>文档</div><div class="stat-chip"><strong>2,412</strong>Chunks</div><div class="stat-chip"><strong>2</strong>处理中作业</div>
+        </div>
+        <div class="dashboard-grid">
+          <section class="card">
+            <div class="card-head" style="flex-wrap:wrap;row-gap:8px;padding-top:10px;padding-bottom:10px"><div class="toolbar"><div class="search">⌕　搜索文件名或解析器…</div><button class="button">状态　⌄</button></div><button class="text-link">全部文档　→</button></div>
+            <table class="table catalog-table">
+              <thead><tr><th>文档</th><th>状态</th><th class="hide-mobile">解析器</th><th>OCR</th><th class="hide-mobile">大小</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b0532f;background:#fdeee7">▤</span><span>个人贷款管理办法.pdf<small class="tool-sub">42 chunks · 今天 09:12</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">pypdf</td><td>否</td><td class="hide-mobile">2.3 MB</td><td class="row-actions">···</td></tr>
+                <tr><td><div class="tool-title"><span class="tool-symbol">▤</span><span>2025年信贷政策汇编.docx<small class="tool-sub">86 chunks · 今天 09:12</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">python-docx</td><td>否</td><td class="hide-mobile">1.1 MB</td><td class="row-actions">···</td></tr>
+                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#218b7b;background:#e8f5f2">▧</span><span>担保合同样本（扫描件）.pdf<small class="tool-sub">31 chunks · 昨天 16:40</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">pypdf + tesseract</td><td>是</td><td class="hide-mobile">8.6 MB</td><td class="row-actions">···</td></tr>
+                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b27b32;background:#fbf2df">▦</span><span>产品利率表.xlsx<small class="tool-sub">解析中 · 2 分钟前</small></span></div></td><td><span class="status amber"><i class="dot" style="background:#d9a14c"></i>解析中</span></td><td class="hide-mobile">openpyxl</td><td>否</td><td class="hide-mobile">356 KB</td><td class="row-actions">···</td></tr>
+                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#8067c7;background:#f1edfc">▨</span><span>风控培训讲义.pptx<small class="tool-sub">排队等待 worker</small></span></div></td><td><span class="status amber"><i class="dot" style="background:#d9a14c"></i>排队中</span></td><td class="hide-mobile">python-pptx</td><td>否</td><td class="hide-mobile">4.2 MB</td><td class="row-actions">···</td></tr>
+                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b0532f;background:#fdeee7">▤</span><span>反洗钱操作手册.pdf<small class="tool-sub">解析失败 · 加密文档</small></span></div></td><td><span class="status red"><i class="dot" style="background:#cf6a45"></i>失败</span></td><td class="hide-mobile">pypdf</td><td>否</td><td class="hide-mobile">1.8 MB</td><td class="row-actions">重建</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h2>处理队列</h2><button class="text-link">全部作业　→</button></div>
+            <div class="run-list">
+              <div class="run"><i class="run-point"></i><div class="run-copy"><strong>担保合同样本.pdf · OCR 完成</strong><small>tesseract · 31 chunks 已入库 · 昨天 16:40</small></div></div>
+              <div class="run"><i class="run-point" style="background:#daa148;box-shadow:0 0 0 3px #fbf2df"></i><div class="run-copy"><strong>产品利率表.xlsx · 解析中</strong><small>openpyxl → Markdown · 2 分钟前</small></div></div>
+              <div class="run"><i class="run-point" style="background:#daa148;box-shadow:0 0 0 3px #fbf2df"></i><div class="run-copy"><strong>风控培训讲义.pptx · 排队中</strong><small>等待 worker 空闲</small></div></div>
+              <div class="run"><i class="run-point" style="background:#cf6a45;box-shadow:0 0 0 3px #fdeee7"></i><div class="run-copy"><strong>反洗钱操作手册.pdf · 失败</strong><small>文档已加密，无法提取文本</small></div></div>
+            </div>
+            <div style="padding:12px 16px;border-top:1px solid #edf1f3;color:#8797a0;font-size:9px">索引概况　·　bge-m3 · 1024 维　·　Hybrid（向量 + BM25）　·　BGE Reranker</div>
+          </section>
+        </div>
+        <section class="card" style="margin-top:15px">
+          <div class="card-head"><h2>检索实验室</h2><button class="text-link" onclick="location.href='knowledge-lab.html'">打开交互版　→</button></div>
+          <div class="lab-query">
+            <div class="search" style="width:min(360px,52vw)">⌕　Q3 营收口径</div>
+            <button class="button" style="border-color:var(--accent);color:var(--accent);background:var(--accent-soft)">Hybrid 融合</button><button class="button">纯向量</button><button class="button">纯关键词</button>
+            <span style="color:#7e8d97;font-size:10px">重排 开　·　Top-K 8</span>
+            <span class="tag">kb: 信贷制度库 ×</span><span class="tag">kb: 产品利率库 ×</span>
+            <button class="button primary" style="margin-left:auto">⌕ 检索</button>
+          </div>
+          <div class="analyzer"><span style="color:#6d8090;font-weight:700;letter-spacing:.1em">QUERY ANALYZER</span><span class="tag mcp">意图：语义 + 精确编号</span><span class="tag">词项：Q3 / 营收 / 口径</span><span class="tag">过滤：kb × 2 · 类型不限 · 时间不限</span><span class="tag">改写：无</span></div>
+          <div class="lab-grid">
+            <div class="result-list" style="padding:0">
+              <div class="result">
+                <div class="result-top"><span class="rank-badge">1</span><div class="result-head" style="flex:1"><span>2025年信贷政策汇编.docx　·　第三章 / 3.2 营收口径</span><small>chars 4,120–4,890</small></div></div>
+                <div class="result-text">……季度<mark>营收</mark>按净利息收入与手续费收入合并口径统计，<mark>Q3</mark> 起纳入新准则下的减值回拨项，追溯调整<mark>口径</mark>见附录 B……</div>
+                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.8123</b></span><span class="score">sparse <b>0.6341</b></span><span class="score">fused <b>0.0325</b></span><span class="score">rerank <b>0.9102</b></span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
+              </div>
+              <div class="result">
+                <div class="result-top"><span class="rank-badge">2</span><div class="result-head" style="flex:1"><span>产品利率表.xlsx　·　Sheet1 / 季度汇总</span><small>chars 980–1,540</small></div></div>
+                <div class="result-text">……<mark>Q3</mark> <mark>营收</mark>合计 12,480 万元，环比 +6.2%；其中对公贷款利息收入占比 71.4%……</div>
+                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.7460</b></span><span class="score">sparse <b>0.7812</b></span><span class="score">fused <b>0.0318</b></span><span class="score">rerank <b>0.8674</b></span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
+              </div>
+              <div class="result">
+                <div class="result-top"><span class="rank-badge">3</span><div class="result-head" style="flex:1"><span>个人贷款管理办法.pdf　·　附录 B / 追溯调整表</span><small>chars 21,304–21,866</small></div></div>
+                <div class="result-text">……<mark>Q3</mark> 追溯调整<mark>口径</mark>：减值回拨项按 2024 版准则重述，<mark>营收</mark>重述值见下表第 4 行……</div>
+                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.4102</b></span><span class="score">sparse <b>0.8817</b></span><span class="score">fused <b>0.0291</b></span><span class="score">rerank <b>0.8351</b></span><span class="tag workflow">OCR 扫描件</span><span class="tag workflow">BM25 命中 · 纯向量漏检</span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="mini-card">
+                <div class="mini-head">模式对比　·　同一查询</div>
+                <table class="table">
+                  <thead><tr><th>模式</th><th>命中</th><th>编号样例</th></tr></thead>
+                  <tbody>
+                    <tr><td>纯向量</td><td>6</td><td><span class="status red"><i class="dot" style="background:#cf6a45"></i>漏检</span></td></tr>
+                    <tr><td>纯关键词</td><td>4</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
+                    <tr><td>Hybrid</td><td>8</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
+                    <tr style="background:#f4faf8"><td><b>Hybrid + Rerank</b></td><td>8</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mini-card">
+                <div class="mini-head">流水线耗时</div>
+                <div class="kv"><span>向量召回 · Qdrant</span><b>23ms</b></div>
+                <div class="kv"><span>BM25 · 进程内</span><b>8ms</b></div>
+                <div class="kv"><span>RRF 融合</span><b>1ms</b></div>
+                <div class="kv"><span>Cross-Encoder 重排</span><b>142ms</b></div>
+                <div class="kv"><span>总计</span><b>174ms</b></div>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #edf1f3">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:11px 16px"><span style="color:#29404f;font-size:10px;font-weight:650">Context Builder　·　拼接预览</span><div class="toolbar"><span style="color:#8797a0;font-size:9px">2 段引用 · 去重 1 · 截断 0 · 1,586 字符 ≈ 793 tokens</span><button class="button">复制上下文</button></div></div>
+            <pre class="ctx-pre">[1] 2025年信贷政策汇编.docx · 第三章 / 3.2（chars 4,120–4,890）
+季度营收按净利息收入与手续费收入合并口径统计，Q3 起纳入新准则下的减值回拨项……
+[2] 产品利率表.xlsx · Sheet1 / 季度汇总（chars 980–1,540）
+Q3 营收合计 12,480 万元，环比 +6.2%；对公贷款利息收入占比 71.4%……</pre>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
   <script>
     function showApp(which) {
-      document.getElementById('platform').style.display = which === 'platform' ? 'flex' : 'none';
-      document.getElementById('capability').style.display = which === 'capability' ? 'flex' : 'none';
-      document.getElementById('platform-tab').classList.toggle('active', which === 'platform');
-      document.getElementById('capability-tab').classList.toggle('active', which === 'capability');
+      ['platform', 'capability', 'knowledge'].forEach((app) => {
+        document.getElementById(app).style.display = app === which ? 'flex' : 'none';
+        document.getElementById(app + '-tab').classList.toggle('active', app === which);
+      });
     }
   </script>
 </body>
