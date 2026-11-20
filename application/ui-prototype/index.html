@@ -166,6 +166,116 @@
       .table th, .table td { padding-right: 9px; padding-left: 9px; }
       .hide-mobile { display: none; }
     }
+    /* ---- Knowledge interactive layer ---- */
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { border: 2px solid #f3f6f8; border-radius: 8px; background: #c3d0d8; }
+    ::-webkit-scrollbar-thumb:hover { background: #158b83; }
+    .k-scroll { overflow-x: auto; }
+    .k-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .k-input, .k-select { padding: 8px 10px; border: 1px solid #dfe7eb; border-radius: 7px; color: #344a59; background: #fff; font: inherit; font-size: 10px; }
+    .k-input:focus, .k-select:focus, .k-textarea:focus { border-color: #158b83; outline: 2px solid #158b8322; }
+    .k-search { display: flex; width: min(280px, 58vw); align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid #e3eaee; border-radius: 7px; background: #fff; }
+    .k-search input { width: 100%; border: 0; outline: 0; color: #344a59; background: transparent; font: inherit; font-size: 10px; }
+    .k-search span { color: #8b9aa3; font-size: 11px; }
+    .k-textarea { width: 100%; min-height: 74px; padding: 9px 10px; border: 1px solid #dfe7eb; border-radius: 7px; color: #344a59; font: inherit; font-size: 10px; line-height: 1.6; resize: vertical; }
+    .k-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 15px; }
+    .k-kb { flex: 0 0 auto; min-width: 148px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; text-align: left; box-shadow: var(--shadow); transition: border-color .18s, transform .18s; }
+    .k-kb:hover { transform: translateY(-2px); border-color: #bcd6d1; }
+    .k-kb.on { border-color: #158b83; box-shadow: 0 0 0 2px #158b8322, var(--shadow); }
+    .k-kb strong { display: flex; align-items: center; gap: 7px; color: #263d4c; font-size: 11px; }
+    .k-kb .k-dot { width: 8px; height: 8px; border-radius: 3px; }
+    .k-kb small { display: block; margin-top: 5px; color: #8a9aa4; font-size: 9px; }
+    .k-kb .k-num { color: #158b83; font-weight: 700; }
+    .k-prog { display: inline-block; width: 74px; height: 5px; border-radius: 4px; background: #eef2f4; overflow: hidden; vertical-align: middle; }
+    .k-prog i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #158b83, #46c0ac); transition: width .35s linear; }
+    .k-stage { display: block; margin-top: 4px; color: #9a6d32; font-size: 9px; }
+    .k-pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-top: 1px solid #edf1f3; color: #8797a0; font-size: 9px; }
+    .k-pager button { min-width: 24px; padding: 4px 7px; border: 1px solid #e3eaee; border-radius: 6px; background: #fff; color: #536775; font-size: 9px; }
+    .k-pager button.on { border-color: #158b83; color: #fff; background: #158b83; }
+    .k-pager button:disabled { opacity: .4; cursor: default; }
+    .k-empty { padding: 34px 16px; color: #8a9aa4; font-size: 10px; text-align: center; }
+    .k-switch { position: relative; width: 34px; height: 19px; flex: 0 0 34px; padding: 0; border: 0; border-radius: 20px; background: #cfd9df; transition: background .2s; }
+    .k-switch::after { content: ""; position: absolute; top: 2.5px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 25%); transition: left .2s; }
+    .k-switch.on { background: #158b83; }
+    .k-switch.on::after { left: 17px; }
+    .k-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0f3f5; }
+    .k-field:last-child { border-bottom: 0; }
+    .k-field label { color: #415765; font-size: 10px; font-weight: 600; }
+    .k-field small { display: block; margin-top: 3px; color: #93a2ab; font-size: 9px; font-weight: 400; }
+    .k-range { width: 150px; accent-color: #158b83; }
+    .k-val { min-width: 42px; color: #158b83; font-size: 10px; font-weight: 700; font-family: ui-monospace, Consolas, monospace; text-align: right; }
+    .k-step { display: inline-flex; align-items: center; gap: 6px; }
+    .k-step button { width: 22px; height: 22px; border: 1px solid #dfe7eb; border-radius: 6px; background: #fff; color: #3b5261; font-size: 12px; line-height: 1; }
+    .k-est { margin-top: 12px; padding: 11px 13px; border: 1px dashed #bcd6d1; border-radius: 8px; background: #f4faf8; color: #2c6b60; font-size: 10px; line-height: 1.7; }
+    .k-est b { font-family: ui-monospace, Consolas, monospace; }
+    .k-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .k-pad { padding: 14px 17px; }
+    .k-worker { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid #f0f3f5; }
+    .k-worker .k-ava { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; color: #218b7b; background: #e6f5f0; font-size: 12px; }
+    .k-worker.busy .k-ava { color: #9a6d32; background: #fbf2df; }
+    .k-worker strong { display: block; color: #415765; font-size: 10px; }
+    .k-worker small { display: block; margin-top: 3px; color: #93a2ab; font-size: 9px; }
+    .k-job { padding: 12px 16px; border-bottom: 1px solid #f0f3f5; }
+    .k-job:last-child { border-bottom: 0; }
+    .k-job-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .k-job-top strong { color: #304957; font-size: 10px; }
+    .k-job-bar { margin-top: 8px; height: 6px; border-radius: 5px; background: #eef2f4; overflow: hidden; }
+    .k-job-bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #4c7fe8, #46c0ac); transition: width .35s linear; }
+    .k-job-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; color: #93a2ab; font-size: 9px; }
+    .k-hist { display: flex; gap: 9px; padding: 10px 16px; border-bottom: 1px solid #f0f3f5; }
+    .k-hist:last-child { border-bottom: 0; }
+    .k-hist i { width: 7px; height: 7px; flex: 0 0 7px; margin-top: 4px; border-radius: 50%; background: #34b483; }
+    .k-hist.bad i { background: #cf6a45; }
+    .k-hist strong { display: block; color: #415765; font-size: 10px; font-weight: 600; }
+    .k-hist small { display: block; margin-top: 3px; color: #96a3aa; font-size: 9px; }
+    .k-chunk { padding: 10px 12px; border: 1px solid #edf1f3; border-radius: 8px; margin-bottom: 8px; background: #fbfcfd; }
+    .k-chunk strong { display: flex; justify-content: space-between; gap: 8px; color: #29404f; font-size: 10px; }
+    .k-chunk strong small { color: #91a0a9; font-weight: 400; font-family: ui-monospace, Consolas, monospace; }
+    .k-chunk p { margin: 6px 0 0; color: #536775; font-size: 10px; line-height: 1.65; }
+    .k-scrim { position: fixed; inset: 0; z-index: 80; background: rgb(14 32 45 / 42%); opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .k-scrim.open { opacity: 1; pointer-events: auto; }
+    .k-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 90; display: flex; width: min(430px, 100vw); flex-direction: column; background: #fff; box-shadow: -18px 0 44px rgb(14 32 45 / 22%); transform: translateX(103%); transition: transform .28s cubic-bezier(.22, .8, .3, 1); }
+    .k-drawer.open { transform: none; }
+    .k-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 17px 18px 13px; border-bottom: 1px solid #edf1f3; }
+    .k-drawer-head h3 { margin: 0; color: #172d3d; font-size: 13px; }
+    .k-drawer-head small { display: block; margin-top: 5px; color: #8a9aa4; font-size: 9px; }
+    .k-x { width: 26px; height: 26px; flex: 0 0 26px; border: 1px solid #e3eaee; border-radius: 7px; background: #fff; color: #6c7f8a; font-size: 13px; }
+    .k-drawer-body { flex: 1; overflow-y: auto; padding: 15px 18px; }
+    .k-drawer-foot { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid #edf1f3; }
+    .k-modal { position: fixed; top: 50%; left: 50%; z-index: 95; width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 48px); overflow-y: auto; border-radius: 12px; background: #fff; box-shadow: 0 24px 64px rgb(14 32 45 / 30%); transform: translate(-50%, -46%) scale(.97); opacity: 0; pointer-events: none; transition: transform .22s cubic-bezier(.22, .8, .3, 1), opacity .22s; }
+    .k-modal.open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+    .k-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid #edf1f3; }
+    .k-modal-head h3 { margin: 0; color: #172d3d; font-size: 13px; }
+    .k-modal-body { padding: 15px 18px; }
+    .k-modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 18px; border-top: 1px solid #edf1f3; }
+    .k-form-row { margin-bottom: 12px; }
+    .k-form-row label { display: block; margin-bottom: 5px; color: #415765; font-size: 10px; font-weight: 600; }
+    .k-form-row .k-input, .k-form-row .k-select, .k-form-row .k-textarea { width: 100%; }
+    .k-form-row small { display: block; margin-top: 4px; color: #93a2ab; font-size: 9px; }
+    .k-check { display: flex; align-items: center; gap: 8px; color: #415765; font-size: 10px; }
+    .k-check input { accent-color: #158b83; }
+    .k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .k-toast { display: flex; align-items: center; gap: 12px; max-width: min(360px, calc(100vw - 36px)); padding: 11px 14px; border-radius: 9px; color: #ecf4f6; background: #142b3a; box-shadow: 0 10px 28px rgb(14 32 45 / 30%); font-size: 10px; animation: kToastIn .28s cubic-bezier(.22, .8, .3, 1) both; }
+    .k-toast.err { background: #7c3a24; }
+    .k-toast button { padding: 3px 8px; border: 1px solid #ffffff40; border-radius: 6px; color: #9fe4d6; background: transparent; font-size: 9px; font-weight: 700; }
+    .k-toast.err button { color: #ffd9c7; }
+    @keyframes kToastIn { from { opacity: 0; transform: translateY(10px); } }
+    @keyframes kFadeUp { from { opacity: 0; transform: translateY(9px); } }
+    #k-page > * { animation: kFadeUp .4s cubic-bezier(.22, .8, .3, 1) both; }
+    #k-page > *:nth-child(2) { animation-delay: .05s; }
+    #k-page > *:nth-child(3) { animation-delay: .1s; }
+    #k-page > *:nth-child(4) { animation-delay: .15s; }
+    #k-page > *:nth-child(5) { animation-delay: .2s; }
+    .k-rowbtn { border: 0; background: transparent; color: var(--accent); font-size: 10px; padding: 0; }
+    .k-rowbtn.danger { color: #b0532f; }
+    .k-actions { display: flex; gap: 10px; white-space: nowrap; }
+    @media (max-width: 900px) { .k-grid2 { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) {
+      .k-range { width: 110px; }
+      .k-toasts { right: 10px; bottom: 10px; left: 10px; align-items: stretch; }
+      .k-drawer { width: 100vw; }
+    }
   </style>
 </head>
 <body>
@@ -270,115 +380,466 @@
     <aside>
       <div class="workspace"><div class="workspace-avatar" style="background:#8067c7">K</div><div><strong>SmartAgent</strong><small>Knowledge Hub⌄</small></div></div>
       <div class="nav-label">KNOWLEDGE</div>
-      <div class="nav-item active"><span class="icon">▤</span><span>知识库</span><span class="nav-count">6</span></div>
-      <div class="nav-item" style="cursor:pointer" onclick="location.href='knowledge-lab.html'"><span class="icon">⌕</span><span>检索实验室</span></div>
-      <div class="nav-item"><span class="icon">◷</span><span>作业队列</span><span class="nav-count">2</span></div>
+      <div class="nav-item active" data-knav="bases" style="cursor:pointer"><span class="icon">▤</span><span>知识库</span><span class="nav-count" id="k-nav-bases">6</span></div>
+      <div class="nav-item" data-knav="lab" style="cursor:pointer"><span class="icon">⌕</span><span>检索实验室</span></div>
+      <div class="nav-item" data-knav="jobs" style="cursor:pointer"><span class="icon">◷</span><span>作业队列</span><span class="nav-count" id="k-nav-jobs">2</span></div>
       <div class="nav-label">SYSTEM</div>
-      <div class="nav-item"><span class="icon">⚙</span><span>设置</span></div>
+      <div class="nav-item" data-knav="settings" style="cursor:pointer"><span class="icon">⚙</span><span>设置</span></div>
       <div class="aside-bottom">WORKSPACE<br><div class="user-row"><div class="user-avatar" style="color:#4a3a84;background:#ddd3f7">A</div><span>管理员<br><small style="color:#91a5af">Knowledge Admin</small></span><span style="margin-left:auto">···</span></div></div>
     </aside>
     <main>
-      <div class="topbar"><div class="breadcrumbs">Knowledge　/　<b>知识库</b></div><div class="top-actions"><span class="top-status"><i class="dot"></i>Qdrant 已连接</span><span>⌕</span><span>◷</span><span>帮助</span></div></div>
-      <div class="page">
-        <div class="page-heading"><div><div class="eyebrow">KNOWLEDGE HUB</div><h1>信贷制度库</h1><div class="subheading">上传 → 解析 / OCR → Markdown → 切块 → 索引，每条命中可追溯到原文。</div></div><div class="toolbar"><button class="button">⇧ 上传文档</button><button class="button primary">＋ 新建知识库</button></div></div>
-        <div class="catalog-stats">
-          <div class="stat-chip"><strong>6</strong>知识库</div><div class="stat-chip"><strong>128</strong>文档</div><div class="stat-chip"><strong>2,412</strong>Chunks</div><div class="stat-chip"><strong>2</strong>处理中作业</div>
-        </div>
-        <div class="dashboard-grid">
-          <section class="card">
-            <div class="card-head" style="flex-wrap:wrap;row-gap:8px;padding-top:10px;padding-bottom:10px"><div class="toolbar"><div class="search">⌕　搜索文件名或解析器…</div><button class="button">状态　⌄</button></div><button class="text-link">全部文档　→</button></div>
-            <table class="table catalog-table">
-              <thead><tr><th>文档</th><th>状态</th><th class="hide-mobile">解析器</th><th>OCR</th><th class="hide-mobile">大小</th><th></th></tr></thead>
-              <tbody>
-                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b0532f;background:#fdeee7">▤</span><span>个人贷款管理办法.pdf<small class="tool-sub">42 chunks · 今天 09:12</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">pypdf</td><td>否</td><td class="hide-mobile">2.3 MB</td><td class="row-actions">···</td></tr>
-                <tr><td><div class="tool-title"><span class="tool-symbol">▤</span><span>2025年信贷政策汇编.docx<small class="tool-sub">86 chunks · 今天 09:12</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">python-docx</td><td>否</td><td class="hide-mobile">1.1 MB</td><td class="row-actions">···</td></tr>
-                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#218b7b;background:#e8f5f2">▧</span><span>担保合同样本（扫描件）.pdf<small class="tool-sub">31 chunks · 昨天 16:40</small></span></div></td><td><span class="status"><i class="dot"></i>已就绪</span></td><td class="hide-mobile">pypdf + tesseract</td><td>是</td><td class="hide-mobile">8.6 MB</td><td class="row-actions">···</td></tr>
-                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b27b32;background:#fbf2df">▦</span><span>产品利率表.xlsx<small class="tool-sub">解析中 · 2 分钟前</small></span></div></td><td><span class="status amber"><i class="dot" style="background:#d9a14c"></i>解析中</span></td><td class="hide-mobile">openpyxl</td><td>否</td><td class="hide-mobile">356 KB</td><td class="row-actions">···</td></tr>
-                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#8067c7;background:#f1edfc">▨</span><span>风控培训讲义.pptx<small class="tool-sub">排队等待 worker</small></span></div></td><td><span class="status amber"><i class="dot" style="background:#d9a14c"></i>排队中</span></td><td class="hide-mobile">python-pptx</td><td>否</td><td class="hide-mobile">4.2 MB</td><td class="row-actions">···</td></tr>
-                <tr><td><div class="tool-title"><span class="tool-symbol" style="color:#b0532f;background:#fdeee7">▤</span><span>反洗钱操作手册.pdf<small class="tool-sub">解析失败 · 加密文档</small></span></div></td><td><span class="status red"><i class="dot" style="background:#cf6a45"></i>失败</span></td><td class="hide-mobile">pypdf</td><td>否</td><td class="hide-mobile">1.8 MB</td><td class="row-actions">重建</td></tr>
-              </tbody>
-            </table>
-          </section>
-          <section class="card">
-            <div class="card-head"><h2>处理队列</h2><button class="text-link">全部作业　→</button></div>
-            <div class="run-list">
-              <div class="run"><i class="run-point"></i><div class="run-copy"><strong>担保合同样本.pdf · OCR 完成</strong><small>tesseract · 31 chunks 已入库 · 昨天 16:40</small></div></div>
-              <div class="run"><i class="run-point" style="background:#daa148;box-shadow:0 0 0 3px #fbf2df"></i><div class="run-copy"><strong>产品利率表.xlsx · 解析中</strong><small>openpyxl → Markdown · 2 分钟前</small></div></div>
-              <div class="run"><i class="run-point" style="background:#daa148;box-shadow:0 0 0 3px #fbf2df"></i><div class="run-copy"><strong>风控培训讲义.pptx · 排队中</strong><small>等待 worker 空闲</small></div></div>
-              <div class="run"><i class="run-point" style="background:#cf6a45;box-shadow:0 0 0 3px #fdeee7"></i><div class="run-copy"><strong>反洗钱操作手册.pdf · 失败</strong><small>文档已加密，无法提取文本</small></div></div>
-            </div>
-            <div style="padding:12px 16px;border-top:1px solid #edf1f3;color:#8797a0;font-size:9px">索引概况　·　bge-m3 · 1024 维　·　Hybrid（向量 + BM25）　·　BGE Reranker</div>
-          </section>
-        </div>
-        <section class="card" style="margin-top:15px">
-          <div class="card-head"><h2>检索实验室</h2><button class="text-link" onclick="location.href='knowledge-lab.html'">打开交互版　→</button></div>
-          <div class="lab-query">
-            <div class="search" style="width:min(360px,52vw)">⌕　Q3 营收口径</div>
-            <button class="button" style="border-color:var(--accent);color:var(--accent);background:var(--accent-soft)">Hybrid 融合</button><button class="button">纯向量</button><button class="button">纯关键词</button>
-            <span style="color:#7e8d97;font-size:10px">重排 开　·　Top-K 8</span>
-            <span class="tag">kb: 信贷制度库 ×</span><span class="tag">kb: 产品利率库 ×</span>
-            <button class="button primary" style="margin-left:auto">⌕ 检索</button>
-          </div>
-          <div class="analyzer"><span style="color:#6d8090;font-weight:700;letter-spacing:.1em">QUERY ANALYZER</span><span class="tag mcp">意图：语义 + 精确编号</span><span class="tag">词项：Q3 / 营收 / 口径</span><span class="tag">过滤：kb × 2 · 类型不限 · 时间不限</span><span class="tag">改写：无</span></div>
-          <div class="lab-grid">
-            <div class="result-list" style="padding:0">
-              <div class="result">
-                <div class="result-top"><span class="rank-badge">1</span><div class="result-head" style="flex:1"><span>2025年信贷政策汇编.docx　·　第三章 / 3.2 营收口径</span><small>chars 4,120–4,890</small></div></div>
-                <div class="result-text">……季度<mark>营收</mark>按净利息收入与手续费收入合并口径统计，<mark>Q3</mark> 起纳入新准则下的减值回拨项，追溯调整<mark>口径</mark>见附录 B……</div>
-                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.8123</b></span><span class="score">sparse <b>0.6341</b></span><span class="score">fused <b>0.0325</b></span><span class="score">rerank <b>0.9102</b></span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
-              </div>
-              <div class="result">
-                <div class="result-top"><span class="rank-badge">2</span><div class="result-head" style="flex:1"><span>产品利率表.xlsx　·　Sheet1 / 季度汇总</span><small>chars 980–1,540</small></div></div>
-                <div class="result-text">……<mark>Q3</mark> <mark>营收</mark>合计 12,480 万元，环比 +6.2%；其中对公贷款利息收入占比 71.4%……</div>
-                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.7460</b></span><span class="score">sparse <b>0.7812</b></span><span class="score">fused <b>0.0318</b></span><span class="score">rerank <b>0.8674</b></span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
-              </div>
-              <div class="result">
-                <div class="result-top"><span class="rank-badge">3</span><div class="result-head" style="flex:1"><span>个人贷款管理办法.pdf　·　附录 B / 追溯调整表</span><small>chars 21,304–21,866</small></div></div>
-                <div class="result-text">……<mark>Q3</mark> 追溯调整<mark>口径</mark>：减值回拨项按 2024 版准则重述，<mark>营收</mark>重述值见下表第 4 行……</div>
-                <div class="result-foot"><div class="scores"><span class="score">dense <b>0.4102</b></span><span class="score">sparse <b>0.8817</b></span><span class="score">fused <b>0.0291</b></span><span class="score">rerank <b>0.8351</b></span><span class="tag workflow">OCR 扫描件</span><span class="tag workflow">BM25 命中 · 纯向量漏检</span></div><div class="result-actions"><button class="text-link">查看原文</button><button class="text-link">定位 chunk</button><button class="text-link">引用</button></div></div>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:14px">
-              <div class="mini-card">
-                <div class="mini-head">模式对比　·　同一查询</div>
-                <table class="table">
-                  <thead><tr><th>模式</th><th>命中</th><th>编号样例</th></tr></thead>
-                  <tbody>
-                    <tr><td>纯向量</td><td>6</td><td><span class="status red"><i class="dot" style="background:#cf6a45"></i>漏检</span></td></tr>
-                    <tr><td>纯关键词</td><td>4</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
-                    <tr><td>Hybrid</td><td>8</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
-                    <tr style="background:#f4faf8"><td><b>Hybrid + Rerank</b></td><td>8</td><td><span class="status"><i class="dot"></i>命中</span></td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="mini-card">
-                <div class="mini-head">流水线耗时</div>
-                <div class="kv"><span>向量召回 · Qdrant</span><b>23ms</b></div>
-                <div class="kv"><span>BM25 · 进程内</span><b>8ms</b></div>
-                <div class="kv"><span>RRF 融合</span><b>1ms</b></div>
-                <div class="kv"><span>Cross-Encoder 重排</span><b>142ms</b></div>
-                <div class="kv"><span>总计</span><b>174ms</b></div>
-              </div>
-            </div>
-          </div>
-          <div style="border-top:1px solid #edf1f3">
-            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:11px 16px"><span style="color:#29404f;font-size:10px;font-weight:650">Context Builder　·　拼接预览</span><div class="toolbar"><span style="color:#8797a0;font-size:9px">2 段引用 · 去重 1 · 截断 0 · 1,586 字符 ≈ 793 tokens</span><button class="button">复制上下文</button></div></div>
-            <pre class="ctx-pre">[1] 2025年信贷政策汇编.docx · 第三章 / 3.2（chars 4,120–4,890）
-季度营收按净利息收入与手续费收入合并口径统计，Q3 起纳入新准则下的减值回拨项……
-[2] 产品利率表.xlsx · Sheet1 / 季度汇总（chars 980–1,540）
-Q3 营收合计 12,480 万元，环比 +6.2%；对公贷款利息收入占比 71.4%……</pre>
-          </div>
-        </section>
-      </div>
+      <div class="topbar"><div class="breadcrumbs">Knowledge　/　<b id="k-crumb">知识库</b></div><div class="top-actions"><span class="top-status"><i class="dot"></i>Qdrant 已连接</span><span id="k-clock" style="font-family:ui-monospace,Consolas,monospace"></span><span>帮助</span></div></div>
+      <div class="page" id="k-page"></div>
     </main>
   </div>
+  <div id="k-scrim" class="k-scrim"></div>
+  <div id="k-drawer" class="k-drawer" role="dialog" aria-modal="true" aria-label="详情">
+    <div class="k-drawer-head"><div><h3 id="k-drawer-title"></h3><small id="k-drawer-sub"></small></div><button type="button" class="k-x" id="k-drawer-x" aria-label="关闭">×</button></div>
+    <div class="k-drawer-body" id="k-drawer-body"></div>
+    <div class="k-drawer-foot" id="k-drawer-foot"></div>
+  </div>
+  <div id="k-modal-scrim" class="k-scrim"></div>
+  <div id="k-modal" class="k-modal" role="dialog" aria-modal="true" aria-label="对话框">
+    <form id="k-form">
+      <div class="k-modal-head"><h3 id="k-modal-title"></h3><button type="button" class="k-x" id="k-modal-x" aria-label="关闭">×</button></div>
+      <div class="k-modal-body" id="k-modal-body"></div>
+      <div class="k-modal-foot"><button type="button" class="button" id="k-modal-cancel">取消</button><button type="submit" class="button primary" id="k-modal-ok">保存</button></div>
+    </form>
+  </div>
+  <div id="k-toasts" class="k-toasts" aria-live="polite"></div>
   <script>
     function showApp(which) {
       ['platform', 'capability', 'knowledge'].forEach((app) => {
         document.getElementById(app).style.display = app === which ? 'flex' : 'none';
         document.getElementById(app + '-tab').classList.toggle('active', app === which);
       });
+      if (which === 'knowledge') K.render(); else K.closeOverlays();
     }
+    /* ================= Knowledge Hub · 交互原型（演示数据，进程内模拟流水线） ================= */
+    const K = (() => {
+      const $ = id => document.getElementById(id);
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const now = Date.now();
+      const MIN = 60000;
+      const uid = p => p + Math.random().toString(36).slice(2, 8);
+      const rel = ts => { const m = Math.round((Date.now() - ts) / MIN); if (m < 1) return '刚刚'; if (m < 60) return m + ' 分钟前'; if (m < 1440) return Math.round(m / 60) + ' 小时前'; if (m < 2880) return '昨天'; const d = new Date(ts); return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日'; };
+      const size = kb => kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
+      const HUES = { kb1: '#158b83', kb2: '#4c7fe8', kb3: '#8067c7', kb4: '#d89042', kb5: '#3aa0c9', kb6: '#c25e7a' };
+      const MIME_ICON = { pdf: ['▤', '#b0532f', '#fdeee7'], docx: ['▤', '#4c7fe8', '#edf2ff'], xlsx: ['▦', '#218b7b', '#e8f5f2'], pptx: ['▨', '#8067c7', '#f1edfc'] };
+      const PARSERS = { pdf: 'pypdf', docx: 'python-docx', xlsx: 'openpyxl', pptx: 'python-pptx' };
+
+      const kbs = [
+        { id: 'kb1', name: '信贷制度库', desc: '信贷政策、管理办法与投向指引', embedder: 'bge-m3', hybrid: true, reranker: true },
+        { id: 'kb2', name: '产品利率库', desc: '产品利率表、定价指引与 LPR 数据', embedder: 'bge-m3', hybrid: true, reranker: true },
+        { id: 'kb3', name: '风控培训库', desc: '培训讲义、案例集与预警手册', embedder: 'bge-m3', hybrid: true, reranker: true },
+        { id: 'kb4', name: '合规法规库', desc: '监管法规释义与反洗钱制度', embedder: 'bge-m3', hybrid: true, reranker: true },
+        { id: 'kb5', name: '运营手册库', desc: '柜面与运营操作流程', embedder: 'hash（演示）', hybrid: false, reranker: false },
+        { id: 'kb6', name: '客服话术库', desc: '标准话术与投诉处理流程', embedder: 'bge-m3', hybrid: true, reranker: true },
+      ];
+      const D = (kbId, name, mime, ocr, sizeKB, chunks, status, minsAgo, extra = {}) => Object.assign({ id: uid('d'), kbId, name, mime, parser: PARSERS[mime] + (ocr ? ' + tesseract' : ''), ocr, sizeKB, chunks, status, ts: now - minsAgo * MIN, error: null, _t0: 0, _dur: 0 }, extra);
+      const docs = [
+        D('kb1', '个人贷款管理办法.pdf', 'pdf', false, 2355, 42, 'ready', 260),
+        D('kb1', '2025年信贷政策汇编.docx', 'docx', false, 1126, 86, 'ready', 262),
+        D('kb1', '担保合同样本（扫描件）.pdf', 'pdf', true, 8806, 31, 'ready', 1180),
+        D('kb1', '反洗钱操作手册.pdf', 'pdf', false, 1843, 0, 'failed', 90, { error: '文档已加密，无法提取文本' }),
+        D('kb1', '信贷投向指引.docx', 'docx', false, 620, 24, 'ready', 2900),
+        D('kb1', '押品评估指引.pdf', 'pdf', false, 1240, 18, 'ready', 4300),
+        D('kb2', '产品利率表.xlsx', 'xlsx', false, 356, 0, 'processing', 2, { _t0: now - 2500, _dur: 9500 }),
+        D('kb2', '利率定价指引.docx', 'docx', false, 840, 22, 'ready', 1500),
+        D('kb2', '存款产品手册.docx', 'docx', false, 510, 15, 'ready', 2600),
+        D('kb2', 'LPR 历史数据.xlsx', 'xlsx', false, 208, 9, 'ready', 5800),
+        D('kb3', '风控培训讲义.pptx', 'pptx', false, 4300, 0, 'pending', 1),
+        D('kb3', '三道防线案例集.docx', 'docx', false, 960, 27, 'ready', 3000),
+        D('kb3', '预警信号手册.pdf', 'pdf', false, 720, 12, 'ready', 4400),
+        D('kb4', '商业银行法释义.pdf', 'pdf', false, 2100, 33, 'ready', 6000),
+        D('kb4', '反洗钱法规汇编.docx', 'docx', false, 1500, 41, 'ready', 6100),
+        D('kb5', '运营操作手册.docx', 'docx', false, 2400, 52, 'ready', 7000),
+        D('kb6', '客服标准话术.docx', 'docx', false, 430, 19, 'ready', 3200),
+        D('kb6', '投诉处理流程.pdf', 'pdf', false, 380, 8, 'ready', 3300),
+      ];
+      const history = [
+        { ok: true, title: '担保合同样本（扫描件）.pdf · OCR 完成', detail: 'tesseract · 31 chunks 已入库', ts: now - 1180 * MIN },
+        { ok: true, title: '存款产品手册.docx · 入库完成', detail: 'python-docx · 15 chunks', ts: now - 2600 * MIN },
+        { ok: false, title: '反洗钱操作手册.pdf · 解析失败', detail: '文档已加密，无法提取文本', ts: now - 90 * MIN },
+        { ok: true, title: '客服标准话术.docx · 入库完成', detail: 'python-docx · 19 chunks', ts: now - 3200 * MIN },
+      ];
+      const UPLOAD_POOL = [
+        { name: '押品评估指引（修订版）.pdf', mime: 'pdf', ocr: false, sizeKB: 1320 },
+        { name: '征信报告样本（扫描件）.pdf', mime: 'pdf', ocr: true, sizeKB: 6960 },
+        { name: '季度利率调整通知.docx', mime: 'docx', ocr: false, sizeKB: 410 },
+        { name: '培训签到表.xlsx', mime: 'xlsx', ocr: false, sizeKB: 220 },
+        { name: '客服质检记录.pptx', mime: 'pptx', ocr: false, sizeKB: 3170 },
+        { name: '加密制度文件.pdf', mime: 'pdf', ocr: false, sizeKB: 980, fail: '文档已加密，无法提取文本' },
+      ];
+      const CHUNK_TEXT = {
+        pdf: ['本办法所称个人贷款，是指贷款人向符合条件的自然人发放的用于个人消费、生产经营等用途的本外币贷款。', '贷款人应建立借款人面谈面签制度，核实身份与用途真实性；对抵押物应双人实地核查并留存影像资料。', '季度营收按净利息收入与手续费收入合并口径统计，Q3 起纳入新准则下的减值回拨项，追溯调整口径见附录 B。', '保证方式为连带责任保证，保证期间为主债务履行期届满之日起三年；担保范围包括本金、利息、违约金与实现债权费用。'],
+        docx: ['2025 年信贷投放坚持总量稳定、结构优化，全年对公贷款增速目标 8%，普惠小微增速不低于 15%。', '贷款利率 = 资金成本 + 运营成本 + 风险溢价 + 资本回报目标；风险溢价按 PD/LGD 模型计量，季度重检。', '客户身份识别执行初次识别、持续识别、重新识别三环节；受益所有人穿透至自然人，持股 25% 以上逐层登记。', '浮动利率贷款重定价周期最短一年，存量按揭按合同约定年度重定价；定价调整需经资产负债委员会审议。'],
+        xlsx: ['Q3 营收合计 12,480 万元，环比 +6.2%；其中对公贷款利息收入占比 71.4%，普惠小微利息收入占比 12.8%。', '对公一年期 LPR 加点区间 40–120BP，AAA 客户下限 3.05%；普惠小微执行优惠利率 3.40% 起。', '存款挂牌利率：活期 0.20%，一年期 1.35%，三年期 1.75%；大额存单上浮不超过 40BP。'],
+        pptx: ['业务部门为第一道防线，风险合规为第二道，内部审计为第三道；防线间信息共享与整改闭环按季通报。', '关注类客户预警信号包括：流水骤降 30%、法人变更、涉诉新增、抵押物价值重估下跌超 15%。', '可疑交易监测模型覆盖快进快出、分散转入集中转出等 18 类场景；人工甄别时限 T+2 工作日。'],
+      };
+      const HEADINGS = { pdf: ['第一章 / 总则', '第二章 / 受理与调查', '附录 B / 追溯调整表', '第四章 / 担保条款'], docx: ['第一章 / 总体目标', '第二章 / 定价模型', '第三章 / 重定价周期', '第二节 / 识别流程'], xlsx: ['Sheet1 / 季度汇总', 'Sheet2 / 对公定价', 'Sheet3 / 存款挂牌'], pptx: ['Slide 12 / 三道防线', 'Slide 20 / 预警信号', 'Slide 31 / 可疑交易'] };
+
+      const settings = { chunkSize: 512, overlap: 64, embedder: 'bge-m3', hybrid: true, reranker: true, topK: 8, threshold: 0.35 };
+      const S = { view: 'bases', kb: 'kb1', q: '', status: '', sort: 'time', page: 1, draft: Object.assign({}, settings) };
+      const PAGE = 8;
+      const WORKERS = 2;
+      let modalSubmit = null, drawerDoc = null, tickN = 0;
+
+      /* ---------- overlays ---------- */
+      function toast(msg, opts = {}) {
+        const box = $('k-toasts');
+        while (box.children.length >= 4) box.firstChild.remove();
+        const el = document.createElement('div');
+        el.className = 'k-toast' + (opts.err ? ' err' : '');
+        el.innerHTML = '<span>' + esc(msg) + '</span>' + (opts.undo ? '<button type="button">撤销</button>' : '');
+        box.appendChild(el);
+        const kill = () => { el.remove(); };
+        const timer = setTimeout(kill, opts.undo ? 6500 : 3600);
+        if (opts.undo) el.querySelector('button').onclick = () => { clearTimeout(timer); opts.undo(); kill(); };
+      }
+      function openDrawer(title, sub, body, foot) {
+        $('k-drawer-title').textContent = title; $('k-drawer-sub').innerHTML = sub;
+        $('k-drawer-body').innerHTML = body; $('k-drawer-foot').innerHTML = foot || '';
+        $('k-drawer').classList.add('open'); $('k-scrim').classList.add('open');
+        $('k-drawer').inert = false; $('k-drawer').removeAttribute('aria-hidden');
+      }
+      function closeDrawer() { $('k-drawer').classList.remove('open'); $('k-scrim').classList.remove('open'); $('k-drawer').inert = true; $('k-drawer').setAttribute('aria-hidden', 'true'); drawerDoc = null; }
+      function openModal(title, body, opts = {}) {
+        $('k-modal-title').textContent = title; $('k-modal-body').innerHTML = body;
+        $('k-modal-ok').textContent = opts.ok || '保存';
+        modalSubmit = opts.onSubmit || null;
+        $('k-modal').classList.add('open'); $('k-modal-scrim').classList.add('open');
+        $('k-modal').inert = false; $('k-modal').removeAttribute('aria-hidden');
+        setTimeout(() => { const f = $('k-modal-body').querySelector('input,select,textarea'); if (f) f.focus(); }, 80);
+      }
+      function closeModal() { $('k-modal').classList.remove('open'); $('k-modal-scrim').classList.remove('open'); $('k-modal').inert = true; $('k-modal').setAttribute('aria-hidden', 'true'); modalSubmit = null; }
+      function closeOverlays() { closeDrawer(); closeModal(); }
+
+      /* ---------- derived ---------- */
+      const kb = id => kbs.find(k => k.id === id);
+      const kbDocs = id => docs.filter(d => d.kbId === id);
+      const activeJobs = () => docs.filter(d => d.status === 'processing' || d.status === 'pending');
+      const totalChunks = () => docs.reduce((a, d) => a + (d.status === 'ready' ? d.chunks : 0), 0);
+      function stageOf(d, p) {
+        if (p < 0.22) return '解析 · ' + d.parser.split(' ')[0];
+        if (p < 0.48) return d.ocr ? 'OCR · tesseract' : 'Markdown 转换';
+        if (p < 0.74) return '切块 · ' + S.draft.chunkSize + ' chars';
+        if (p < 0.92) return '向量化 · ' + (kb(d.kbId) || {}).embedder;
+        return '写入 Qdrant 索引';
+      }
+      function statusCell(d) {
+        if (d.status === 'ready') return '<span class="status"><i class="dot"></i>已就绪</span>';
+        if (d.status === 'failed') return '<span class="status red"><i class="dot" style="background:#cf6a45"></i>失败</span>';
+        if (d.status === 'pending') return '<span class="status amber"><i class="dot" style="background:#d9a14c"></i>排队中</span>';
+        const p = Math.min(1, (Date.now() - d._t0) / d._dur);
+        return '<span class="status amber"><i class="dot" style="background:#d9a14c"></i>解析中</span><span class="k-prog" style="margin-left:7px"><i data-kprog="' + d.id + '" style="width:' + Math.round(p * 100) + '%"></i></span><small class="k-stage" data-kprogt="' + d.id + '">' + stageOf(d, p) + '</small>';
+      }
+      function docIcon(d) { const m = MIME_ICON[d.mime] || MIME_ICON.pdf; return '<span class="tool-symbol" style="color:' + m[1] + ';background:' + m[2] + '">' + m[0] + '</span>'; }
+
+      /* ---------- views ---------- */
+      function viewBases() {
+        const cur = kb(S.kb) || kbs[0];
+        if (cur && S.kb !== cur.id) S.kb = cur.id;
+        const list = cur ? kbDocs(cur.id) : [];
+        const ready = list.filter(d => d.status === 'ready');
+        const chunks = ready.reduce((a, d) => a + d.chunks, 0);
+        const busy = list.filter(d => d.status === 'processing' || d.status === 'pending').length;
+        const failed = list.filter(d => d.status === 'failed').length;
+        let filtered = list.filter(d => (!S.q || (d.name + d.parser).toLowerCase().includes(S.q.toLowerCase())) && (!S.status || d.status === S.status));
+        const cmp = { time: (a, b) => b.ts - a.ts, name: (a, b) => a.name.localeCompare(b.name, 'zh'), chunks: (a, b) => b.chunks - a.chunks, size: (a, b) => b.sizeKB - a.sizeKB }[S.sort];
+        filtered = filtered.slice().sort(cmp);
+        const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+        S.page = Math.min(S.page, pages);
+        const rows = filtered.slice((S.page - 1) * PAGE, S.page * PAGE);
+        const chips = kbs.map(k => {
+          const n = kbDocs(k.id).length;
+          return '<button type="button" class="k-kb' + (k.id === S.kb ? ' on' : '') + '" data-k="kb" data-id="' + k.id + '"><strong><span class="k-dot" style="background:' + (HUES[k.id] || '#158b83') + '"></span>' + esc(k.name) + '</strong><small><span class="k-num">' + n + '</span> 文档 · ' + esc(k.embedder) + '</small></button>';
+        }).join('');
+        const trs = rows.length ? rows.map(d => '<tr>' +
+          '<td><div class="tool-title">' + docIcon(d) + '<span><button type="button" class="k-rowbtn" data-k="doc" data-id="' + d.id + '" style="font-weight:650;color:#304957">' + esc(d.name) + '</button><small class="tool-sub">' + (d.status === 'ready' ? d.chunks + ' chunks · ' + rel(d.ts) : d.status === 'failed' ? esc(d.error || '解析失败') : d.status === 'pending' ? '排队等待 worker' : '流水线处理中') + '</small></span></div></td>' +
+          '<td>' + statusCell(d) + '</td>' +
+          '<td class="hide-mobile">' + esc(d.parser) + '</td>' +
+          '<td>' + (d.ocr ? '<span class="tag workflow">是</span>' : '否') + '</td>' +
+          '<td class="hide-mobile">' + size(d.sizeKB) + '</td>' +
+          '<td><div class="k-actions">' + (d.status === 'failed' ? '<button type="button" class="k-rowbtn" data-k="retry" data-id="' + d.id + '">重建</button>' : '') + '<button type="button" class="k-rowbtn" data-k="doc" data-id="' + d.id + '">查看</button><button type="button" class="k-rowbtn danger" data-k="del-doc" data-id="' + d.id + '">删除</button></div></td></tr>').join('')
+          : '<tr><td colspan="6"><div class="k-empty">没有匹配的文档。调整筛选条件，或点击右上角「上传文档」。</div></td></tr>';
+        let pager = '';
+        if (pages > 1) {
+          let btns = '';
+          for (let i = 1; i <= pages; i++) btns += '<button type="button" class="' + (i === S.page ? 'on' : '') + '" data-k="page" data-id="' + i + '">' + i + '</button>';
+          pager = '<div class="k-pager"><span>共 ' + filtered.length + ' 项 · 每页 ' + PAGE + ' 项</span><span style="display:flex;gap:5px"><button type="button" data-k="page" data-id="' + (S.page - 1) + '"' + (S.page === 1 ? ' disabled' : '') + '>‹</button>' + btns + '<button type="button" data-k="page" data-id="' + (S.page + 1) + '"' + (S.page === pages ? ' disabled' : '') + '>›</button></span></div>';
+        }
+        return '<div class="page-heading"><div><div class="eyebrow">KNOWLEDGE HUB</div><h1>' + esc(cur ? cur.name : '知识库') + '</h1><div class="subheading">' + esc(cur ? cur.desc : '') + '　·　上传 → 解析 / OCR → Markdown → 切块 → 索引，每条命中可追溯到原文。</div></div>' +
+          '<div class="k-toolbar"><button type="button" class="button" data-k="upload">⇧ 上传文档</button><button type="button" class="button primary" data-k="new-kb">＋ 新建知识库</button>' + (cur ? '<button type="button" class="button" data-k="del-kb" data-id="' + cur.id + '" style="color:#b0532f">删除当前库</button>' : '') + '</div></div>' +
+          '<div class="k-chips">' + chips + '</div>' +
+          '<div class="catalog-stats"><div class="stat-chip"><strong>' + kbs.length + '</strong>知识库</div><div class="stat-chip"><strong>' + list.length + '</strong>本文档库文档</div><div class="stat-chip"><strong>' + chunks.toLocaleString() + '</strong>Chunks</div><div class="stat-chip"><strong>' + busy + '</strong>处理中作业</div>' + (failed ? '<div class="stat-chip"><strong style="color:#b0532f">' + failed + '</strong>失败待重建</div>' : '') + '</div>' +
+          '<section class="card"><div class="card-head" style="flex-wrap:wrap;row-gap:8px;padding-top:10px;padding-bottom:10px"><div class="k-toolbar">' +
+          '<div class="k-search"><span>⌕</span><input id="k-q" data-kinput="q" value="' + esc(S.q) + '" placeholder="搜索文件名或解析器…" aria-label="搜索文档"></div>' +
+          '<select class="k-select" data-kchange="status" aria-label="状态筛选"><option value="">全部状态</option><option value="ready"' + (S.status === 'ready' ? ' selected' : '') + '>已就绪</option><option value="processing"' + (S.status === 'processing' ? ' selected' : '') + '>解析中</option><option value="pending"' + (S.status === 'pending' ? ' selected' : '') + '>排队中</option><option value="failed"' + (S.status === 'failed' ? ' selected' : '') + '>失败</option></select>' +
+          '<select class="k-select" data-kchange="sort" aria-label="排序"><option value="time"' + (S.sort === 'time' ? ' selected' : '') + '>最近上传</option><option value="name"' + (S.sort === 'name' ? ' selected' : '') + '>名称</option><option value="chunks"' + (S.sort === 'chunks' ? ' selected' : '') + '>Chunks 数</option><option value="size"' + (S.sort === 'size' ? ' selected' : '') + '>文件大小</option></select></div>' +
+          '<button type="button" class="text-link" data-k="goto-jobs">作业队列 →</button></div>' +
+          '<div class="k-scroll"><table class="table catalog-table"><thead><tr><th>文档</th><th>状态</th><th class="hide-mobile">解析器</th><th>OCR</th><th class="hide-mobile">大小</th><th></th></tr></thead><tbody>' + trs + '</tbody></table></div>' + pager + '</section>' +
+          '<section class="card" style="margin-top:15px"><div class="card-head"><h2>检索实验室</h2><button type="button" class="text-link" data-k="open-lab">打开交互版 →</button></div>' +
+          '<div class="k-pad" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:#536775;font-size:10px">' +
+          '<span class="tag mcp">Hybrid · 向量 + BM25 → RRF</span><span class="tag">BGE Reranker</span><span class="tag workflow">OCR 扫描件可追溯</span><span class="tag">Context Builder 拼接引用</span>' +
+          '<span style="margin-left:auto;color:#8797a0;font-size:9px">在交互版中对比纯向量 / 纯关键词 / Hybrid 的命中差异，验证编号类查询的漏检问题。</span></div></section>';
+      }
+      function viewJobs() {
+        const act = activeJobs();
+        const proc = docs.filter(d => d.status === 'processing');
+        const workers = Array.from({ length: WORKERS }, (_, i) => {
+          const d = proc[i];
+          if (!d) return '<div class="k-worker"><span class="k-ava">◷</span><div><strong>worker-' + (i + 1) + ' · 空闲</strong><small>等待队列分配</small></div></div>';
+          const p = Math.min(1, (Date.now() - d._t0) / d._dur);
+          return '<div class="k-worker busy"><span class="k-ava">⚙</span><div style="flex:1;min-width:0"><strong>' + esc(d.name) + '</strong><small data-kprogt="' + d.id + '">' + stageOf(d, p) + '</small><span class="k-prog" style="width:100%;margin-top:6px"><i data-kprog="' + d.id + '" style="width:' + Math.round(p * 100) + '%"></i></span></div><button type="button" class="k-rowbtn danger" data-k="cancel" data-id="' + d.id + '">取消</button></div>';
+        }).join('');
+        const pend = docs.filter(d => d.status === 'pending');
+        const pendHtml = pend.length ? pend.map(d => '<div class="k-job"><div class="k-job-top"><strong>' + esc(d.name) + '</strong><span class="status amber"><i class="dot" style="background:#d9a14c"></i>排队中</span></div><div class="k-job-meta"><span>' + esc(kb(d.kbId).name) + '</span><span>' + esc(d.parser) + '</span><span>' + size(d.sizeKB) + '</span><button type="button" class="k-rowbtn danger" data-k="cancel" data-id="' + d.id + '">移出队列</button></div></div>').join('') : '<div class="k-empty">队列为空 · 上传文档后自动进入解析流水线</div>';
+        const hist = history.slice(0, 8).map(h => '<div class="k-hist' + (h.ok ? '' : ' bad') + '"><i></i><div><strong>' + esc(h.title) + '</strong><small>' + esc(h.detail) + ' · ' + rel(h.ts) + '</small></div></div>').join('');
+        const failed = docs.filter(d => d.status === 'failed');
+        const failHtml = failed.length ? failed.map(d => '<div class="k-job"><div class="k-job-top"><strong>' + esc(d.name) + '</strong><span class="status red"><i class="dot" style="background:#cf6a45"></i>失败</span></div><div class="k-job-meta"><span style="color:#b0532f">' + esc(d.error || '未知错误') + '</span><button type="button" class="k-rowbtn" data-k="retry" data-id="' + d.id + '">重建索引</button></div></div>').join('') : '';
+        return '<div class="page-heading"><div><div class="eyebrow">PIPELINE</div><h1>作业队列</h1><div class="subheading">' + WORKERS + ' 个 worker 并行 · 解析 → OCR → 切块 → 向量化 → 入库，失败可一键重建。</div></div><div class="k-toolbar"><button type="button" class="button" data-k="upload">⇧ 上传文档</button><button type="button" class="button primary" data-k="goto-bases">返回知识库</button></div></div>' +
+          '<div class="catalog-stats"><div class="stat-chip"><strong>' + proc.length + '</strong>解析中</div><div class="stat-chip"><strong>' + pend.length + '</strong>排队中</div><div class="stat-chip"><strong>' + failed.length + '</strong>失败</div><div class="stat-chip"><strong>' + totalChunks().toLocaleString() + '</strong>已入库 Chunks</div></div>' +
+          '<div class="dashboard-grid"><section class="card"><div class="card-head"><h2>Worker 状态</h2><span style="color:#8797a0;font-size:9px">实时</span></div>' + workers +
+          '<div class="card-head" style="border-top:1px solid #edf1f3"><h2>等待队列</h2></div>' + pendHtml +
+          (failHtml ? '<div class="card-head" style="border-top:1px solid #edf1f3"><h2>失败作业</h2></div>' + failHtml : '') + '</section>' +
+          '<section class="card"><div class="card-head"><h2>最近完成</h2><button type="button" class="text-link" data-k="goto-bases">全部文档 →</button></div>' + hist +
+          '<div style="padding:12px 16px;border-top:1px solid #edf1f3;color:#8797a0;font-size:9px">索引概况 · ' + esc(settings.embedder) + (settings.embedder === 'bge-m3' ? ' · 1024 维' : '') + ' · ' + (settings.hybrid ? 'Hybrid（向量 + BM25）' : '纯向量') + (settings.reranker ? ' · BGE Reranker' : '') + '</div></section></div>';
+      }
+      function viewSettings() {
+        const d = S.draft;
+        const totalChars = totalChunks() * 420;
+        const est = Math.ceil(totalChars / Math.max(64, d.chunkSize - d.overlap));
+        const sw = (key, on) => '<button type="button" class="k-switch' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" data-k="draft-toggle" data-id="' + key + '" aria-label="' + key + '"></button>';
+        return '<div class="page-heading"><div><div class="eyebrow">INDEX SETTINGS</div><h1>索引与检索设置</h1><div class="subheading">调整切块策略与检索默认值，估算实时生效；保存后应用于后续上传与检索。</div></div><div class="k-toolbar"><button type="button" class="button" data-k="draft-reset">恢复默认</button><button type="button" class="button primary" data-k="save-settings">保存设置</button></div></div>' +
+          '<div class="k-grid2"><section class="card"><div class="card-head"><h2>切块与索引</h2></div><div class="k-pad">' +
+          '<div class="k-field"><label>切块大小<small>每个 chunk 的目标字符数</small></label><span style="display:flex;align-items:center;gap:9px"><input type="range" class="k-range" min="256" max="1024" step="64" value="' + d.chunkSize + '" data-kinput="chunkSize" aria-label="切块大小"><span class="k-val" id="k-v-chunkSize">' + d.chunkSize + '</span></span></div>' +
+          '<div class="k-field"><label>重叠窗口<small>相邻 chunk 的重叠字符数</small></label><span style="display:flex;align-items:center;gap:9px"><input type="range" class="k-range" min="0" max="128" step="16" value="' + d.overlap + '" data-kinput="overlap" aria-label="重叠窗口"><span class="k-val" id="k-v-overlap">' + d.overlap + '</span></span></div>' +
+          '<div class="k-field"><label>Embedding 模型<small>hash 仅用于离线演示</small></label><select class="k-select" data-kchange="embedder" aria-label="Embedding 模型"><option value="bge-m3"' + (d.embedder === 'bge-m3' ? ' selected' : '') + '>bge-m3 · 1024 维</option><option value="hash（演示）"' + (d.embedder === 'hash（演示）' ? ' selected' : '') + '>hash-embedder（演示）</option></select></div>' +
+          '<div class="k-field"><label>Hybrid 检索<small>向量 + BM25 → RRF 融合</small></label>' + sw('hybrid', d.hybrid) + '</div>' +
+          '<div class="k-field"><label>Cross-Encoder 重排<small>BGE Reranker · 提升编号类命中</small></label>' + sw('reranker', d.reranker) + '</div>' +
+          '<div class="k-est" id="k-est">当前已入库 <b>' + totalChunks().toLocaleString() + '</b> chunks（约 <b>' + totalChars.toLocaleString() + '</b> 字符）<br>按新策略重切预计 <b>' + est.toLocaleString() + '</b> chunks · 步长 <b>' + (d.chunkSize - d.overlap) + '</b> chars</div>' +
+          '</div></section>' +
+          '<section class="card"><div class="card-head"><h2>检索默认值</h2></div><div class="k-pad">' +
+          '<div class="k-field"><label>Top-K<small>每次检索返回的 chunk 数</small></label><span class="k-step"><button type="button" data-k="topk" data-id="-1" aria-label="减少">−</button><span class="k-val" id="k-v-topK">' + d.topK + '</span><button type="button" data-k="topk" data-id="1" aria-label="增加">＋</button></span></div>' +
+          '<div class="k-field"><label>相似度阈值<small>低于阈值的命中不进入上下文</small></label><span style="display:flex;align-items:center;gap:9px"><input type="range" class="k-range" min="0" max="1" step="0.05" value="' + d.threshold + '" data-kinput="threshold" aria-label="相似度阈值"><span class="k-val" id="k-v-threshold">' + d.threshold.toFixed(2) + '</span></span></div>' +
+          '<div class="k-field"><label>引用追溯<small>命中附带 chars 区间与原文定位</small></label><span class="status"><i class="dot"></i>始终开启</span></div>' +
+          '<div class="k-est">检索链路：Query Analyzer → ' + (d.hybrid ? '向量召回 + BM25 → RRF' : '向量召回') + (d.reranker ? ' → 重排' : '') + ' → Top-' + d.topK + ' → Context Builder<br>阈值 ' + d.threshold.toFixed(2) + ' · 在「检索实验室」交互版中可逐参数验证效果。</div>' +
+          '<div style="margin-top:12px"><button type="button" class="button" data-k="open-lab">⌕ 打开检索实验室</button></div>' +
+          '</div></section></div>';
+      }
+
+      /* ---------- render ---------- */
+      function render() {
+        const active = document.activeElement;
+        const fid = active && active.id; const selStart = active && active.selectionStart;
+        const labels = { bases: '知识库', jobs: '作业队列', settings: '设置' };
+        $('k-crumb').textContent = labels[S.view] || '知识库';
+        document.querySelectorAll('[data-knav]').forEach(n => n.classList.toggle('active', n.dataset.knav === S.view));
+        $('k-nav-bases').textContent = kbs.length;
+        $('k-nav-jobs').textContent = activeJobs().length;
+        $('k-page').innerHTML = S.view === 'jobs' ? viewJobs() : S.view === 'settings' ? viewSettings() : viewBases();
+        if (fid) { const el = $(fid); if (el && el.tagName === 'INPUT') { el.focus(); try { el.setSelectionRange(selStart, selStart); } catch (e) {} } }
+      }
+
+      /* ---------- doc drawer ---------- */
+      function chunkPreview(d) {
+        const texts = CHUNK_TEXT[d.mime] || CHUNK_TEXT.pdf;
+        const heads = HEADINGS[d.mime] || HEADINGS.pdf;
+        const n = Math.min(d.chunks || 4, 6);
+        let off = 0, out = '';
+        for (let i = 0; i < n; i++) {
+          const t = texts[i % texts.length];
+          out += '<div class="k-chunk"><strong>' + esc(heads[i % heads.length]) + '<small>chars ' + off.toLocaleString() + '–' + (off + t.length).toLocaleString() + '</small></strong><p>' + esc(t) + '</p></div>';
+          off += t.length + 2;
+        }
+        if (d.chunks > n) out += '<div class="k-empty" style="padding:10px">仅预览前 ' + n + ' 个 chunk · 共 ' + d.chunks + ' 个</div>';
+        return out;
+      }
+      function openDoc(id) {
+        const d = docs.find(x => x.id === id); if (!d) return;
+        drawerDoc = id;
+        const k = kb(d.kbId);
+        const meta = '<div class="k-field"><label>所属知识库</label><span class="tag">' + esc(k ? k.name : '—') + '</span></div>' +
+          '<div class="k-field"><label>解析器</label><span style="color:#536775;font-size:10px">' + esc(d.parser) + '</span></div>' +
+          '<div class="k-field"><label>OCR</label><span style="color:#536775;font-size:10px">' + (d.ocr ? '是 · tesseract' : '否') + '</span></div>' +
+          '<div class="k-field"><label>大小 / Chunks</label><span style="color:#536775;font-size:10px">' + size(d.sizeKB) + ' · ' + d.chunks + '</span></div>' +
+          '<div class="k-field"><label>上传时间</label><span style="color:#536775;font-size:10px">' + rel(d.ts) + '</span></div>' +
+          (d.error ? '<div class="k-est" style="border-color:#e8c4b4;background:#fdf3ee;color:#b0532f">' + esc(d.error) + '</div>' : '');
+        const body = meta + '<div style="margin:14px 0 8px;color:#29404f;font-size:10px;font-weight:650">Chunk 预览</div>' + (d.status === 'ready' ? chunkPreview(d) : '<div class="k-empty">' + (d.status === 'failed' ? '解析失败，暂无 chunk。可点击「重建索引」重试。' : '流水线处理中，完成后生成 chunk。') + '</div>');
+        const foot = (d.status === 'failed' ? '<button type="button" class="button primary" data-k="retry" data-id="' + d.id + '">重建索引</button>' : '') + '<button type="button" class="button" data-k="del-doc" data-id="' + d.id + '" style="color:#b0532f">删除文档</button>';
+        openDrawer(d.name, (k ? esc(k.name) : '') + ' · ' + esc(d.mime.toUpperCase()) + ' · ' + (d.status === 'ready' ? '已就绪' : d.status === 'failed' ? '失败' : d.status === 'pending' ? '排队中' : '解析中'), body, foot);
+      }
+
+      /* ---------- mutations ---------- */
+      function delDoc(id) {
+        const idx = docs.findIndex(d => d.id === id); if (idx < 0) return;
+        const [d] = docs.splice(idx, 1);
+        if (drawerDoc === id) closeDrawer();
+        render();
+        toast('已删除《' + d.name + '》，索引同步下线', { undo: () => { docs.splice(Math.min(idx, docs.length), 0, d); render(); toast('已恢复《' + d.name + '》'); } });
+      }
+      function retry(id) {
+        const d = docs.find(x => x.id === id); if (!d) return;
+        d.status = 'pending'; d.error = null; d.chunks = 0; d._t0 = 0;
+        if (drawerDoc === id) openDoc(id);
+        render(); toast('《' + d.name + '》已重新加入解析队列');
+      }
+      function cancel(id) {
+        const d = docs.find(x => x.id === id); if (!d) return;
+        d.status = 'failed'; d.error = '已取消解析'; d._t0 = 0;
+        render(); toast('已取消《' + d.name + '》的解析作业', { err: true });
+      }
+      function delKB(id) {
+        const k = kb(id); if (!k) return;
+        openModal('删除知识库', '<p style="margin:0 0 10px;color:#536775;font-size:11px;line-height:1.7">将删除「<b>' + esc(k.name) + '</b>」及其 <b>' + kbDocs(id).length + '</b> 个文档与全部索引。删除后可在提示中撤销。</p>', {
+          ok: '确认删除',
+          onSubmit: () => {
+            const idx = kbs.findIndex(x => x.id === id);
+            const removedDocs = docs.filter(d => d.kbId === id);
+            kbs.splice(idx, 1);
+            for (let i = docs.length - 1; i >= 0; i--) if (docs[i].kbId === id) docs.splice(i, 1);
+            if (S.kb === id) S.kb = kbs.length ? kbs[0].id : '';
+            closeModal(); render();
+            toast('已删除知识库「' + k.name + '」', { undo: () => { kbs.splice(Math.min(idx, kbs.length), 0, k); docs.push(...removedDocs); S.kb = k.id; render(); toast('已恢复「' + k.name + '」'); } });
+          },
+        });
+      }
+      function newKB() {
+        openModal('新建知识库',
+          '<div class="k-form-row"><label>名称 *</label><input class="k-input" name="name" required maxlength="30" placeholder="如：信贷制度库"></div>' +
+          '<div class="k-form-row"><label>描述</label><input class="k-input" name="desc" maxlength="60" placeholder="一句话说明收录范围"></div>' +
+          '<div class="k-form-row"><label>Embedding 模型</label><select class="k-select" name="embedder"><option value="bge-m3">bge-m3 · 1024 维</option><option value="hash（演示）">hash-embedder（演示）</option></select></div>' +
+          '<div class="k-form-row" style="display:flex;gap:18px"><label class="k-check"><input type="checkbox" name="hybrid" checked> Hybrid 检索</label><label class="k-check"><input type="checkbox" name="reranker" checked> 重排</label></div>',
+          { ok: '创建', onSubmit: form => {
+            const fd = new FormData(form); const name = (fd.get('name') || '').trim();
+            if (!name) return '请填写知识库名称';
+            if (kbs.some(k => k.name === name)) return '已存在同名知识库';
+            const id = uid('kb');
+            kbs.push({ id, name, desc: (fd.get('desc') || '').trim() || '新建知识库', embedder: fd.get('embedder'), hybrid: fd.get('hybrid') === 'on', reranker: fd.get('reranker') === 'on' });
+            HUES[id] = ['#158b83', '#4c7fe8', '#8067c7', '#d89042', '#3aa0c9', '#c25e7a'][kbs.length % 6];
+            S.kb = id; S.page = 1; closeModal(); render(); toast('已创建知识库「' + name + '」');
+          } });
+      }
+      function upload() {
+        const opts = UPLOAD_POOL.map((f, i) => '<option value="' + i + '">' + esc(f.name) + ' · ' + size(f.sizeKB) + (f.ocr ? ' · OCR' : '') + (f.fail ? ' · 加密（将失败）' : '') + '</option>').join('');
+        const kbOpts = kbs.map(k => '<option value="' + k.id + '"' + (k.id === S.kb ? ' selected' : '') + '>' + esc(k.name) + '</option>').join('');
+        openModal('上传文档',
+          '<div class="k-form-row"><label>选择演示文件 *</label><select class="k-select" name="file">' + opts + '</select><small>原型使用内置样本模拟上传；「加密制度文件」会演示失败与重建路径。</small></div>' +
+          '<div class="k-form-row"><label>目标知识库</label><select class="k-select" name="kb">' + kbOpts + '</select></div>' +
+          '<div class="k-form-row"><label>自定义文件名（可选）</label><input class="k-input" name="custom" maxlength="50" placeholder="留空则使用样本文件名"></div>',
+          { ok: '加入解析队列', onSubmit: form => {
+            const fd = new FormData(form);
+            const f = UPLOAD_POOL[+fd.get('file')];
+            const kbId = fd.get('kb');
+            if (!kb(kbId)) return '请选择目标知识库';
+            const custom = (fd.get('custom') || '').trim();
+            const mime = f.mime;
+            const name = custom ? (custom.includes('.') ? custom : custom + '.' + mime) : f.name;
+            docs.push({ id: uid('d'), kbId, name, mime, parser: PARSERS[mime] + (f.ocr ? ' + tesseract' : ''), ocr: f.ocr, sizeKB: f.sizeKB, chunks: 0, status: 'pending', ts: Date.now(), error: null, _t0: 0, _dur: 0, _fail: f.fail || null });
+            S.kb = kbId; S.view = 'jobs'; S.page = 1;
+            closeModal(); render(); toast('《' + name + '》已加入解析队列');
+          } });
+      }
+
+      /* ---------- simulation tick ---------- */
+      function tick() {
+        tickN++;
+        if (tickN % 2 === 0) { const c = $('k-clock'); if (c) c.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false }); }
+        let changed = false;
+        const proc = docs.filter(d => d.status === 'processing');
+        for (const d of docs.filter(x => x.status === 'pending')) {
+          if (proc.length >= WORKERS) break;
+          d.status = 'processing'; d._t0 = Date.now(); d._dur = 7000 + Math.random() * 4000;
+          proc.push(d); changed = true;
+        }
+        for (const d of proc) {
+          const p = (Date.now() - d._t0) / d._dur;
+          if (p >= 1) {
+            if (d._fail) {
+              d.status = 'failed'; d.error = d._fail; d.chunks = 0;
+              history.unshift({ ok: false, title: d.name + ' · 解析失败', detail: d._fail, ts: Date.now() });
+              toast('《' + d.name + '》解析失败：' + d._fail, { err: true });
+            } else {
+              d.status = 'ready'; d.chunks = Math.max(4, Math.round(d.sizeKB / 28)); d.ts = Date.now();
+              history.unshift({ ok: true, title: d.name + ' · 入库完成', detail: d.parser + ' · ' + d.chunks + ' chunks', ts: Date.now() });
+              toast('《' + d.name + '》已入库 · ' + d.chunks + ' chunks');
+            }
+            changed = true;
+          } else {
+            document.querySelectorAll('[data-kprog="' + d.id + '"]').forEach(el => { el.style.width = Math.round(p * 100) + '%'; });
+            const label = stageOf(d, p) + ' · ' + Math.round(p * 100) + '%';
+            document.querySelectorAll('[data-kprogt="' + d.id + '"]').forEach(el => { el.textContent = label; });
+          }
+        }
+        if (changed) { render(); if (drawerDoc) { const d = docs.find(x => x.id === drawerDoc); if (d) openDoc(d.id); else closeDrawer(); } }
+      }
+
+      /* ---------- events ---------- */
+      document.addEventListener('click', e => {
+        const nav = e.target.closest('[data-knav]');
+        if (nav) {
+          const v = nav.dataset.knav;
+          if (v === 'lab') { location.href = 'knowledge-lab.html'; return; }
+          S.view = v; render(); return;
+        }
+        const b = e.target.closest('[data-k]'); if (!b) return;
+        const act = b.dataset.k, id = b.dataset.id;
+        if (act === 'kb') { S.kb = id; S.page = 1; render(); }
+        else if (act === 'page') { const p = +id; if (p >= 1) { S.page = p; render(); } }
+        else if (act === 'doc') openDoc(id);
+        else if (act === 'del-doc') delDoc(id);
+        else if (act === 'retry') retry(id);
+        else if (act === 'cancel') cancel(id);
+        else if (act === 'upload') upload();
+        else if (act === 'new-kb') newKB();
+        else if (act === 'del-kb') delKB(id);
+        else if (act === 'goto-jobs') { S.view = 'jobs'; render(); }
+        else if (act === 'goto-bases') { S.view = 'bases'; render(); }
+        else if (act === 'open-lab') location.href = 'knowledge-lab.html';
+        else if (act === 'draft-toggle') { S.draft[id] = !S.draft[id]; render(); }
+        else if (act === 'topk') { S.draft.topK = Math.max(1, Math.min(20, S.draft.topK + (+id))); $('k-v-topK').textContent = S.draft.topK; }
+        else if (act === 'draft-reset') { S.draft = Object.assign({}, settings); render(); toast('已恢复默认设置（未保存）'); }
+        else if (act === 'save-settings') { Object.assign(settings, S.draft); render(); toast('设置已保存 · 应用于后续上传与检索'); }
+      });
+      document.addEventListener('input', e => {
+        const el = e.target.closest('[data-kinput]'); if (!el) return;
+        const key = el.dataset.kinput;
+        if (key === 'q') { S.q = el.value; S.page = 1; render(); return; }
+        S.draft[key] = +el.value;
+        const v = $('k-v-' + key); if (v) v.textContent = key === 'threshold' ? (+el.value).toFixed(2) : el.value;
+        const est = $('k-est');
+        if (est) {
+          const totalChars = totalChunks() * 420;
+          const v2 = Math.ceil(totalChars / Math.max(64, S.draft.chunkSize - S.draft.overlap));
+          est.innerHTML = '当前已入库 <b>' + totalChunks().toLocaleString() + '</b> chunks（约 <b>' + totalChars.toLocaleString() + '</b> 字符）<br>按新策略重切预计 <b>' + v2.toLocaleString() + '</b> chunks · 步长 <b>' + (S.draft.chunkSize - S.draft.overlap) + '</b> chars';
+        }
+      });
+      document.addEventListener('change', e => {
+        const el = e.target.closest('[data-kchange]'); if (!el) return;
+        const key = el.dataset.kchange;
+        if (key === 'status') { S.status = el.value; S.page = 1; render(); }
+        else if (key === 'sort') { S.sort = el.value; render(); }
+        else if (key === 'embedder') { S.draft.embedder = el.value; render(); }
+      });
+      $('k-form').addEventListener('submit', e => {
+        e.preventDefault();
+        if (modalSubmit) { const err = modalSubmit(e.target); if (err) { toast(err, { err: true }); return; } }
+        closeModal();
+      });
+      $('k-drawer-x').onclick = closeDrawer;
+      $('k-scrim').onclick = closeDrawer;
+      $('k-modal-x').onclick = closeModal;
+      $('k-modal-cancel').onclick = closeModal;
+      $('k-modal-scrim').onclick = closeModal;
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlays(); });
+
+      $('k-drawer').inert = true; $('k-drawer').setAttribute('aria-hidden', 'true');
+      $('k-modal').inert = true; $('k-modal').setAttribute('aria-hidden', 'true');
+      render();
+      setInterval(tick, 400);
+      return { render, closeOverlays, toast, tick, state: S, docs, kbs, settings };
+    })();
   </script>
 </body>
 </html>
